@@ -6,10 +6,20 @@
     <body>
         <h1>hlist leaderboard</h1>
 
-        <p><a href="how-to-api.html">instructions to get an API key to use</a></p>
-        <label for="googleApiKey">google api key to get data with</label>
-        <input type="password" id="googleApiKey" name="googleApiKey" value="">
-        <button onclick="setApiKeyAndGetData()">get data using api key</button>
+        <button onclick="toggleApiKeyUsage()">ADVANCED: toggle API key usage</button>
+
+        <div style="display: none;" id="api-key-container">
+            <p><a href="how-to-api.html">instructions to get an API key to use</a></p>
+
+            <label for="googleApiKey">google api key to get data with</label>
+            <input type="password" id="googleApiKey" name="googleApiKey" value="">
+            <button onclick="setApiKeyAndGetData()">get data using api key</button>
+        </div>
+        <div id="gist-load-container">
+            <button onclick="loadGist()">load data without api key</button>
+            <p>data last updated (UTC): <a id="lastGistUpdate">{}</a></p>
+        </div>
+        
 
         <p>slapped together by kelton555; i do not take responsibility for crimes against javascript and common sense contained herein</p>
         <!-- but javascript deserves crimes against it anyways-->

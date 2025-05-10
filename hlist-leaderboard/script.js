@@ -68,47 +68,48 @@ function makeEmptyArray() {
     return arr;
 }
 
+const SHEET_ID = "1A88F3X2lOQJry-Da2NpnAr-w5WDrkjDtg7Wt0kLCiz8";
 function getData() {
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/1A88F3X2lOQJry-Da2NpnAr-w5WDrkjDtg7Wt0kLCiz8/values:batchGet?key=${apikey}&ranges=Clears!E1:1&ranges=Clears!2:300`)
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchGet?key=${apikey}&ranges=Clears!E1:1&ranges=Clears!2:300`)
         .then((response) => response.json())
         .then((data) => {
-            console.log(data);
-            
-            players = data.valueRanges[0].values[0];
-            let unprocessedClears = data.valueRanges[1].values;
-
-            clears = [];
-
-            for (let i = 0; i < players.length; i++) {
-                clears.push({
-                    score: 0,
-                    clearsPerTier: makeEmptyArray() // this is stupid
-                });
-            }
-
-            let tierIndex = 0;
-            for (let i = 0; i < unprocessedClears.length; i++) {
-                if (unprocessedClears[i].length == 0) { // if the row is empty
-                    tierIndex -= 1; // go to the low version of the tier
-                } else if (unprocessedClears[i][0].startsWith("\u2B50")) {
-                    tierIndex = (unprocessedClears[i][0].match(/\u2B50/g)||[]).length * 2 - 1; // count the number of stars and multiply by 2 to get the index, then subtract 1 to get the correct index
-                    // copilot wrote that comment sorry
-                } else {
-                    for (let j = 4; j < unprocessedClears[i].length; j++) { // start at 4 to skip the first 4 columns
-                        if (unprocessedClears[i][j] != "" && (j-4) < players.length) {
-                            clears[j-4].score += VALUES_FOR_CLEAR[tierIndex]; // add the score to the player
-                            clears[j-4].clearsPerTier[tierIndex] += 1;
-                        }
-                    }
-                }
-
-
-            }
+            processData(data);
         })
         .catch((error) => console.error("Error fetching player data:", error))
         .finally(() => {
             displayData();
         });
+}
+
+function processData(data) {
+    players = data.valueRanges[0].values[0];
+    let unprocessedClears = data.valueRanges[1].values;
+
+    clears = [];
+
+    for (let i = 0; i < players.length; i++) {
+        clears.push({
+            score: 0,
+            clearsPerTier: makeEmptyArray() // this is stupid
+        });
+    }
+
+    let tierIndex = 0;
+    for (let i = 0; i < unprocessedClears.length; i++) {
+        if (unprocessedClears[i].length == 0) { // if the row is empty
+            tierIndex -= 1; // go to the low version of the tier
+        } else if (unprocessedClears[i][0].startsWith("\u2B50")) {
+            tierIndex = (unprocessedClears[i][0].match(/\u2B50/g) || []).length * 2 - 1; // count the number of stars and multiply by 2 to get the index, then subtract 1 to get the correct index
+            // copilot wrote that comment sorry
+        } else {
+            for (let j = 4; j < unprocessedClears[i].length; j++) { // start at 4 to skip the first 4 columns
+                if (unprocessedClears[i][j] != "" && (j - 4) < players.length) {
+                    clears[j - 4].score += VALUES_FOR_CLEAR[tierIndex]; // add the score to the player
+                    clears[j - 4].clearsPerTier[tierIndex] += 1;
+                }
+            }
+        }
+    }
 }
 
 const DISPLAYED_TIERS = [0, 1, 2, 3, 4, 5, 7].reverse();
@@ -172,4 +173,30 @@ function setApiKeyAndGetData() {
     apikey = document.getElementById("googleApiKey").value;
 
     getData();
+}
+
+var gistLink = "https://gist.githubusercontent.com/Kelton555/97017c745a85a29597692c9ddd74a8be/raw/hlist%20data";
+function loadGist() {
+    fetch(gistLink)
+    .then((response) => response.json())
+    .then((data) => {
+        document.getElementById("lastGistUpdate").innerText = `${data["iso-time"]}`;
+        processData(data);  
+    })
+    .catch((error) => console.error("Error fetching player data:", error))
+    .finally(() => {
+        displayData();
+    })
+}
+
+var apiKeyOn = false;
+function toggleApiKeyUsage() {
+    if (apiKeyOn) {
+        document.getElementById("api-key-container").style.display = "none";
+        document.getElementById("gist-load-container").style.display = "inherit";
+    } else {
+        document.getElementById("api-key-container").style.display = "inherit";
+        document.getElementById("gist-load-container").style.display = "none";
+    }
+    apiKeyOn = !apiKeyOn;
 }

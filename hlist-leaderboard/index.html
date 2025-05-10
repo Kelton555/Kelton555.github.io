@@ -1,0 +1,57 @@
+<html>
+    <head>
+        <title>hlist leaderbaord</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <h1>hlist leaderboard</h1>
+
+        <label for="googleApiKey">google api key to get data with</label>
+        <input type="text" id="googleApiKey" name="googleApiKey" value="">
+        <button onclick="setApiKeyAndGetData()">get data using api key</button>
+
+        <p>slapped together by kelton555; i do not take responsibility for crimes against javascript and common sense contained herein</p>
+        <!-- but javascript deserves crimes against it anyways-->
+        <!-- and apparently vscode added copilot at some point since i last used it so it did some crimes too-->
+
+        <div class="form-container">
+            <form id="score-per-difficulty">
+                <label for="low-1-star">low 1 star</label>
+                <input type="number" id="low-1-star" name="0" min="0" max="1000" value="1">
+                <br>
+                <label for="high-1-star">high 1 star</label>
+                <input type="number" id="high-1-star" name="1" min="0" max="1000" value="2">
+                <br>
+                <label for="low-2-star">low 2 star</label>
+                <input type="number" id="low-2-star" name="2" min="0" max="1000" value="3">
+                <br>
+                <label for="high-2-star">high 2 star</label>
+                <input type="number" id="high-2-star" name="3" min="0" max="1000" value="4">
+                <br>
+                <label for="low-3-star">low 3 star</label>
+                <input type="number" id="low-3-star" name="4" min="0" max="1000" value="5">
+                <br>
+                <label for="high-3-star">high 3 star</label>
+                <input type="number" id="high-3-star" name="5" min="0" max="1000" value="6">
+                <br>
+                <label for="4-star">4 star</label>
+                <input type="number" id="4-star" name="7" min="0" max="1000" value="8">
+            </form>
+            <button onclick="updateScoring()">change scoring</button>
+        </div>
+
+        <br><br>
+
+        <table id="rank-table">
+            <p class="JAVASCRIPT-REMOVE">JavaScript required</p>            
+        </table>
+
+        <script>
+            const rem = document.getElementsByClassName("JAVASCRIPT-REMOVE");
+
+            for (let i = 0; i < rem.length; i++) {
+                rem[i].remove();
+            }
+        </script>
+        <script src="script.js"></script>
+</html>

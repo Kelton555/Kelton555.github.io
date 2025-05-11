@@ -114,6 +114,34 @@ function processData(data) {
 
 const DISPLAYED_TIERS = [0, 1, 2, 3, 4, 5, 7].reverse();
 
+const PLAYER_LABELS = [];
+const PLAYER_SCORES = [];
+
+const DATA_CHART = new Chart("data-graph", {
+    type: "bar",
+    data: {
+        labels: PLAYER_LABELS,
+        datasets: [{
+            backgroundColor: "blue",
+            data: PLAYER_SCORES
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {display: false},
+            title: {
+                display: true,
+                text: "Top 10 Players (ties broken alphabetically)"
+            },
+            subtitle: {
+                display: true,
+                text: "Created with Chart.js",
+                position: "bottom"
+            }
+        }
+    }
+})
+
 function displayData() {
     let sortedPlayerRanking = [];
 
@@ -128,10 +156,20 @@ function displayData() {
 
     PLAYER_RANK_TABLE.innerHTML = "<tr><th>rank</th><th>score</th><th>name</th><th>&#11088;&#11088;&#11088;&#11088;</th><th>High &#11088;&#11088;&#11088;</th><th>Low &#11088;&#11088;&#11088;</th><th>High &#11088;&#11088;</th><th>Low &#11088;&#11088;</th><th>High &#11088;</th><th>Low &#11088;</th></tr>";
 
+    for (let i = 0; i < 10; i++) {
+        PLAYER_LABELS.pop();
+        PLAYER_SCORES.pop();
+    }
+
     for (let i = 0; i < sortedPlayerRanking.length; i++) {
         let player = sortedPlayerRanking[i];
 
-        if (player.score == 0) {
+        if (i < 10) {
+            PLAYER_LABELS.push(players[player.id]);
+            PLAYER_SCORES.push(player.score);
+        }
+
+        if (player.score <= 0) {
             continue
         }
 
@@ -143,6 +181,8 @@ function displayData() {
         }
         PLAYER_RANK_TABLE.appendChild(playerRow);
     }
+
+    DATA_CHART.update();
 
     //console.log(sortedPlayerRanking);
 }

@@ -191,7 +191,7 @@ function updateScoring() {
     let formData = new FormData(SCORE_FORM);
 
     for (var pair of formData.entries()) {
-        let value = parseInt(pair[1]);
+        let value = parseFloat(pair[1]);
         if (isNaN(value)) {
             alert("Please enter a valid number for all scores.");
             return;

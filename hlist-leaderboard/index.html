@@ -6,17 +6,17 @@
     <body>
         <h1>hlist leaderboard</h1>
 
-        <button onclick="toggleApiKeyUsage()">ADVANCED: toggle API key usage</button>
+        <button onclick="HLIST_CODE_CONTAINER.toggleApiKeyUsage()">ADVANCED: toggle API key usage</button>
 
         <div style="display: none;" id="api-key-container">
             <p><a href="how-to-api.html">instructions to get an API key to use</a></p>
 
             <label for="googleApiKey">google api key to get data with</label>
             <input type="password" id="googleApiKey" name="googleApiKey" value="">
-            <button onclick="setApiKeyAndGetData()">get data using api key</button>
+            <button onclick="HLIST_CODE_CONTAINER.setApiKeyAndGetData()">get data using api key</button>
         </div>
         <div id="gist-load-container">
-            <button onclick="loadGist()">load data without api key</button>
+            <button onclick="HLIST_CODE_CONTAINER.loadGist()">load data without api key</button>
             <p>data last updated (UTC): <a id="lastGistUpdate">{}</a></p>
         </div>
         
@@ -27,28 +27,28 @@
 
         <div class="form-container">
             <form id="score-per-difficulty">
-                <label for="low-1-star">low 1 star</label>
-                <input type="number" id="low-1-star" name="0" value="1">
+                <label for="1-star">1 star</label>
+                <input type="number" id="1-star" name="0" value="1">
                 <br>
-                <label for="high-1-star">high 1 star</label>
-                <input type="number" id="high-1-star" name="1" value="2">
+                <label for="2-star">2 star</label>
+                <input type="number" id="2-star" name="1" value="2">
                 <br>
-                <label for="low-2-star">low 2 star</label>
-                <input type="number" id="low-2-star" name="2" value="3">
-                <br>
-                <label for="high-2-star">high 2 star</label>
-                <input type="number" id="high-2-star" name="3" value="4">
-                <br>
-                <label for="low-3-star">low 3 star</label>
-                <input type="number" id="low-3-star" name="4" value="5">
-                <br>
-                <label for="high-3-star">high 3 star</label>
-                <input type="number" id="high-3-star" name="5" value="6">
+                <label for="3-star">3 star</label>
+                <input type="number" id="3-star" name="2" value="3">
                 <br>
                 <label for="4-star">4 star</label>
-                <input type="number" id="4-star" name="7" value="8">
+                <input type="number" id="4-star" name="3" value="4">
+                <br>
+                <label for="5-star">5 star</label>
+                <input type="number" id="5-star" name="4" value="5">
+                <br>
+                <label for="6-star">6 star</label>
+                <input type="number" id="6-star" name="5" value="6">
+                <br>
+                <label for="7-star">7 star</label>
+                <input type="number" id="7-star" name="6" value="7">
             </form>
-            <button onclick="updateScoring()">change scoring</button>
+            <button onclick="HLIST_CODE_CONTAINER.updateScoring()">change scoring</button>
         </div>
 
         <canvas id="data-graph" style="max-width:600px; max-height: 400px;"></canvas>

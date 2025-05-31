@@ -1,5 +1,10 @@
+const HLIST_CODE_CONTAINER = {};
+
+(function() {
+
 let players = [];
 let clears = [];
+
 
 let apikey = "";
 
@@ -29,9 +34,20 @@ const VALUES_FOR_CLEAR = [ // points earned per star in level
 ];
 
 const TIER_NAMES = [
-    "Low One Star",
-    "High One Star",
-    "Low Two Star",
+    "One Star",
+    "Two Star",
+    "Three Star",
+    "Four Star",
+    "Five Star",
+    "Six Star",
+    "Seven Star",
+    "Eight Star",
+    "Nine Star",
+    "Ten Star",
+];
+
+/**
+ *  "Low Two Star",
     "High Two Star",
     "Low Three Star",
     "High Three Star",
@@ -53,7 +69,7 @@ const TIER_NAMES = [
     "High Eleven Star",
     "Low Twelve Star",
     "High Twelve Star",
-];
+ */
 
 const PLAYER_RANK_TABLE = document.getElementById("rank-table");
 const SCORE_FORM = document.getElementById("score-per-difficulty");
@@ -85,6 +101,8 @@ function processData(data) {
     players = data.valueRanges[0].values[0];
     let unprocessedClears = data.valueRanges[1].values;
 
+    //console.log(data);
+
     clears = [];
 
     for (let i = 0; i < players.length; i++) {
@@ -94,14 +112,16 @@ function processData(data) {
         });
     }
 
-    let tierIndex = 0;
-    for (let i = 0; i < unprocessedClears.length; i++) {
+    let tierIndex = -1;
+    for (let i = unprocessedClears.length - 1; i >= 0; i--) {
         if (unprocessedClears[i].length == 0) { // if the row is empty
-            tierIndex -= 1; // go to the low version of the tier
-        } else if (unprocessedClears[i][0].startsWith("\u2B50")) {
-            tierIndex = (unprocessedClears[i][0].match(/\u2B50/g) || []).length * 2 - 1; // count the number of stars and multiply by 2 to get the index, then subtract 1 to get the correct index
-            // copilot wrote that comment sorry
+            tierIndex += 1; // up a tier
+        } else if (unprocessedClears[i][0].startsWith("\u2B50") || unprocessedClears[i][0] == '') {
+            continue;
         } else {
+            if (tierIndex > 6) {
+                break; // you silly little pranksters giving two people clears on 1 octillion lava neutrals, now i have to bring jank into the world
+            }
             for (let j = 4; j < unprocessedClears[i].length; j++) { // start at 4 to skip the first 4 columns
                 if (unprocessedClears[i][j] != "" && (j - 4) < players.length) {
                     clears[j - 4].score += VALUES_FOR_CLEAR[tierIndex]; // add the score to the player
@@ -112,7 +132,7 @@ function processData(data) {
     }
 }
 
-const DISPLAYED_TIERS = [0, 1, 2, 3, 4, 5, 7].reverse();
+const DISPLAYED_TIERS = [0, 1, 2, 3, 4, 5, 6].reverse();
 
 const PLAYER_LABELS = [];
 const PLAYER_SCORES = [];
@@ -154,7 +174,7 @@ function displayData() {
 
     sortedPlayerRanking.sort((a, b) => b.score - a.score); // sort by score
 
-    PLAYER_RANK_TABLE.innerHTML = "<tr><th>rank</th><th>score</th><th>name</th><th>&#11088;&#11088;&#11088;&#11088;</th><th>High &#11088;&#11088;&#11088;</th><th>Low &#11088;&#11088;&#11088;</th><th>High &#11088;&#11088;</th><th>Low &#11088;&#11088;</th><th>High &#11088;</th><th>Low &#11088;</th></tr>";
+    PLAYER_RANK_TABLE.innerHTML = "<tr><th>rank</th><th>score</th><th>name</th><th>&#11088;&#11088;&#11088;&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;</th><th>&#11088;</th></tr>";
 
     for (let i = 0; i < 10; i++) {
         PLAYER_LABELS.pop();
@@ -191,11 +211,12 @@ function updateScoring() {
     let formData = new FormData(SCORE_FORM);
 
     for (var pair of formData.entries()) {
-        let value = parseFloat(pair[1]);
+        let value = parseInt(pair[1]);
         if (isNaN(value)) {
             alert("Please enter a valid number for all scores.");
             return;
         }
+        //console.log(pair[0], value);
         VALUES_FOR_CLEAR[parseInt(pair[0])] = value;
     }
 
@@ -208,12 +229,14 @@ function updateScoring() {
 
     displayData();
 }
+HLIST_CODE_CONTAINER.updateScoring = updateScoring;
 
 function setApiKeyAndGetData() {
     apikey = document.getElementById("googleApiKey").value;
 
     getData();
 }
+HLIST_CODE_CONTAINER.setApiKeyAndGetData = setApiKeyAndGetData;
 
 var gistLink = "https://gist.githubusercontent.com/Kelton555/97017c745a85a29597692c9ddd74a8be/raw/hlist%20data";
 function loadGist() {
@@ -228,6 +251,7 @@ function loadGist() {
         displayData();
     })
 }
+HLIST_CODE_CONTAINER.loadGist = loadGist;
 
 var apiKeyOn = false;
 function toggleApiKeyUsage() {
@@ -240,3 +264,6 @@ function toggleApiKeyUsage() {
     }
     apiKeyOn = !apiKeyOn;
 }
+HLIST_CODE_CONTAINER.toggleApiKeyUsage = toggleApiKeyUsage;
+
+})();

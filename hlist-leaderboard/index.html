@@ -26,28 +26,7 @@
         <!-- and apparently vscode added copilot at some point since i last used it so it did some crimes too-->
 
         <div class="form-container">
-            <form id="score-per-difficulty">
-                <label for="1-star">1 star</label>
-                <input type="number" id="1-star" name="0" value="1">
-                <br>
-                <label for="2-star">2 star</label>
-                <input type="number" id="2-star" name="1" value="2">
-                <br>
-                <label for="3-star">3 star</label>
-                <input type="number" id="3-star" name="2" value="3">
-                <br>
-                <label for="4-star">4 star</label>
-                <input type="number" id="4-star" name="3" value="4">
-                <br>
-                <label for="5-star">5 star</label>
-                <input type="number" id="5-star" name="4" value="5">
-                <br>
-                <label for="6-star">6 star</label>
-                <input type="number" id="6-star" name="5" value="6">
-                <br>
-                <label for="7-star">7 star</label>
-                <input type="number" id="7-star" name="6" value="7">
-            </form>
+            <form id="score-per-difficulty"></form>
             <button onclick="HLIST_CODE_CONTAINER.updateScoring()">change scoring</button>
         </div>
 
@@ -55,6 +34,8 @@
 
         <br><br>
 
+        <p>sortable table using <a href="https://www.kryogenix.org/code/browser/sorttable/">sorttable</a> by Stuart Langridge (<a href="http://www.kryogenix.org/code/browser/licence.html">X11 license</a>)
+        <br>(i have no idea why sorting by name is broken)</p>
         <table id="rank-table">
             <p class="JAVASCRIPT-REMOVE">JavaScript required</p>            
         </table>
@@ -67,5 +48,6 @@
             }
         </script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="script.js?v=0.4"></script>
+        <script src="sorttable.js?v=2"></script>
+        <script src="script.js?v=0.5"></script>
 </html>

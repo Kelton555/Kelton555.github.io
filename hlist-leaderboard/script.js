@@ -1,14 +1,14 @@
 const HLIST_CODE_CONTAINER = {};
 
 (function() {
+const DEBUG = false
 
 let players = [];
 let clears = [];
 
-
 let apikey = "";
 
-const VALUES_FOR_CLEAR = [ // points earned per star in level
+const VALUES_FOR_CLEAR = [ // points earned by stars in level
     1,
     2,
     3,
@@ -33,46 +33,12 @@ const VALUES_FOR_CLEAR = [ // points earned per star in level
     22,
 ];
 
-const TIER_NAMES = [
-    "One Star",
-    "Two Star",
-    "Three Star",
-    "Four Star",
-    "Five Star",
-    "Six Star",
-    "Seven Star",
-    "Eight Star",
-    "Nine Star",
-    "Ten Star",
-];
-
-/**
- *  "Low Two Star",
-    "High Two Star",
-    "Low Three Star",
-    "High Three Star",
-    "Low Four Star", // this one doesn't exist but it helps with programming
-    "Four Star",
-    "Low Five Star",
-    "High Five Star",
-    "Low Six Star",
-    "High Six Star",
-    "Low Seven Star",
-    "High Seven Star",
-    "Low Eight Star",
-    "High Eight Star",
-    "Low Nine Star",
-    "High Nine Star",
-    "Low Ten Star",
-    "High Ten Star",
-    "Low Eleven Star",
-    "High Eleven Star",
-    "Low Twelve Star",
-    "High Twelve Star",
- */
+const STARS_CLEARED = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
 
 const PLAYER_RANK_TABLE = document.getElementById("rank-table");
 const SCORE_FORM = document.getElementById("score-per-difficulty");
+
+let DISPLAYED_TIERS = [0,1,2,3,4,5,6].reverse()
 
 // is there a base function that does this? maybe
 // but i can't find it so trol
@@ -112,27 +78,38 @@ function processData(data) {
         });
     }
 
-    let tierIndex = -1;
+    let tierIndex = -1; // so we're going from the bottom up? past me actually thought about the future for once kinda
     for (let i = unprocessedClears.length - 1; i >= 0; i--) {
         if (unprocessedClears[i].length == 0) { // if the row is empty
             tierIndex += 1; // up a tier
         } else if (unprocessedClears[i][0].startsWith("\u2B50") || unprocessedClears[i][0] == '') {
             continue;
         } else {
-            if (tierIndex > 6) {
-                break; // you silly little pranksters giving two people clears on 1 octillion lava neutrals, now i have to bring jank into the world
+            if (parseInt(unprocessedClears[i][1]) < 1) {
+                if (DEBUG) {
+                    console.log("removing (no clears): " + unprocessedClears[i][0])
+                }
+                continue; // you silly little pranksters giving two people clears on 1 octillion lava neutrals, now i have to bring jank into the world
+            } else if (tierIndex < 0) {
+                if (DEBUG) {
+                    console.log("broken tier!!!")
+                }
+                continue;
             }
-            for (let j = 4; j < unprocessedClears[i].length; j++) { // start at 4 to skip the first 4 columns
+            STARS_CLEARED[tierIndex] = true
+            for (let j = 4; j <= unprocessedClears[i].length; j++) { // start at 4 to skip the first 4 columns
                 if (unprocessedClears[i][j] != "" && (j - 4) < players.length) {
                     clears[j - 4].score += VALUES_FOR_CLEAR[tierIndex]; // add the score to the player
                     clears[j - 4].clearsPerTier[tierIndex] += 1;
+                    if (DEBUG && isNaN(clears[j-4].score)) {
+                        console.log("AHHHHHHHH")
+                        console.log(clears[j-4])
+                    } 
                 }
             }
         }
     }
 }
-
-const DISPLAYED_TIERS = [0, 1, 2, 3, 4, 5, 6].reverse();
 
 const PLAYER_LABELS = [];
 const PLAYER_SCORES = [];
@@ -174,12 +151,32 @@ function displayData() {
 
     sortedPlayerRanking.sort((a, b) => b.score - a.score); // sort by score
 
-    PLAYER_RANK_TABLE.innerHTML = "<tr><th>rank</th><th>score</th><th>name</th><th>&#11088;&#11088;&#11088;&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;&#11088;</th><th>&#11088;&#11088;</th><th>&#11088;</th></tr>";
+    let start = `<thead><tr><th>rank</th><th>score</th><th>name</th>`
+    let end = `</tr></thead>`
+
+    let inside = ""
+
+    DISPLAYED_TIERS = []
+    for (let i = STARS_CLEARED.length - 1; i >= 0; i--) {
+        if (STARS_CLEARED[i]) {
+            DISPLAYED_TIERS.push(i)
+            inside += "<th>"
+            for (let j = 0; j <= i; j++) {
+                inside += "&#11088;"
+            }
+            inside += "</th>"
+        }
+    }
+
+    PLAYER_RANK_TABLE.innerHTML = start + inside + end
 
     for (let i = 0; i < 10; i++) {
         PLAYER_LABELS.pop();
         PLAYER_SCORES.pop();
     }
+
+    let tBody = document.createElement('tbody')
+    PLAYER_RANK_TABLE.appendChild(tBody)
 
     for (let i = 0; i < sortedPlayerRanking.length; i++) {
         let player = sortedPlayerRanking[i];
@@ -199,11 +196,28 @@ function displayData() {
         for (let j = 0; j < DISPLAYED_TIERS.length; j++) {
             playerRow.innerHTML += `<td>${clears[player.id].clearsPerTier[DISPLAYED_TIERS[j]]}</td>`;
         }
-        PLAYER_RANK_TABLE.appendChild(playerRow);
+        tBody.appendChild(playerRow);
     }
 
     DATA_CHART.update();
 
+    SCORE_FORM.innerHTML = ""
+
+    for (let i = DISPLAYED_TIERS.length - 1; i >= 0; i--) {
+        let iTier = DISPLAYED_TIERS[i]
+        let oTier = iTier + 1
+        SCORE_FORM.innerHTML += `<label for="${oTier}-star">${oTier} star</label>
+                <input type="number" id="${oTier}-star" name="${iTier}" value="${VALUES_FOR_CLEAR[iTier]}">
+                <br>`
+    }
+
+    if (DEBUG) {
+        HLIST_CODE_CONTAINER.players = players
+        HLIST_CODE_CONTAINER.clears = clears
+        console.log(sortedPlayerRanking)
+    }
+
+    sorttable.makeSortable(PLAYER_RANK_TABLE)
     //console.log(sortedPlayerRanking);
 }
 

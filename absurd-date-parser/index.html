@@ -1,0 +1,86 @@
+<html>
+    <head>
+        <title>absurd date parser</title>
+        <script>
+            function getDateString(date) {
+                return date.toISOString().split('T')[0]
+            }
+
+            function dateToDigits() {
+                let formInfo = new FormData(document.getElementById('input-form'))
+                let dat = formInfo.get('date').split("/")
+
+                let data = {}
+                let format = formInfo.get('format')
+                if (format == "DD/MM/YY[YY]") {
+                    data['d'] = parseFloat(dat[0])
+                    data['m'] = parseFloat(dat[1])
+                    data['y'] = parseFloat(dat[2])
+                } else if (format == "MM/DD/YY[YY]") {
+                    data['m'] = parseFloat(dat[0])
+                    data['d'] = parseFloat(dat[1])
+                    data['y'] = parseFloat(dat[2])
+                } else if (format == "YY[YY]/MM/DD") {
+                    data['y'] = parseFloat(dat[0])
+                    data['m'] = parseFloat(dat[1])
+                    data['d'] = parseFloat(dat[2])
+                } else if (format == "YY[YY]/DD/MM") {
+                    data['y'] = parseFloat(dat[0])
+                    data['d'] = parseFloat(dat[1])
+                    data['m'] = parseFloat(dat[2])
+                }
+
+                return data
+            }
+
+            function parseDate(event) {
+                event.preventDefault()
+
+                let date = dateToDigits()
+
+                if (date['y'] < 1000) {
+                    date['y'] += 2000
+                }
+                date['m'] -= 1 // javascript has months 0 indexed
+
+                let startDate = new Date(Date.UTC(date['y'], date['m'], date['d'] + (date['y'] % 1) * (365.25)))
+
+                let dayOffset = 0
+                dayOffset += (date['m'] % 1) * (new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth()+1, 0))).getUTCDate()
+                dayOffset += date['d'] % 1
+
+                let finalDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate() + Math.round(dayOffset)))
+                document.getElementById('real-date').innerText = getDateString(finalDate)
+            }
+
+            function setPlaceholder() {
+                let data = new FormData(document.getElementById('input-form'))
+
+                document.getElementById('date-input').placeholder = data.get('format')
+            }
+        </script>
+    </head>
+    <body>
+        <p>parses absurd dates (such as 25.25/25.25/25.25) into technically equivalent real ones</p>
+        <p>this was so much simpler than expected since javascript basically just does what i wanted by default</p>
+        <form id="input-form">
+            <input type="radio" id="d/m/y" name="format" value="DD/MM/YY[YY]" checked onchange="setPlaceholder()">
+            <label for="d/m/y">DD/MM/YY[YY]</label>
+            <input type="radio" id="m/d/y" name="format" value="MM/DD/YY[YY]" onchange="setPlaceholder()">
+            <label for="m/d/y">MM/DD/YY[YY]</label>
+            <input type="radio" id="y/m/d" name="format" value="YY[YY]/MM/DD" onchange="setPlaceholder()">
+            <label for="y/m/d">YY[YY]/MM/DD</label>
+            <input type="radio" id="y/d/m" name="format" value="YY[YY]/DD/MM" onchange="setPlaceholder()">
+            <label for="y/d/m">YY[YY]/DD/MM</label>
+            <br>
+
+            <label for="date-input">Date:</label>
+            <input type="text" id="date-input" name="date" pattern="-?\d+\.?\d*/-?\d+\.?\d*/-?\d+\.?\d*" placeholder="DD/MM/YY[YY]">
+            <input type="submit">
+        </form>
+        <p>your real date (YYYY-MM-DD): <a id="real-date"></a></p>
+        <script>
+            document.getElementById('input-form').addEventListener('submit', parseDate)
+        </script>
+    </body>
+</html>

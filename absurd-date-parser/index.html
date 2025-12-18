@@ -98,9 +98,7 @@
 
                 let finalDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate() + Math.round(dayOffset)))
                 if (modifiedYear) { // it's time to strike
-                    let str = `${padYear(finalDate.getUTCFullYear() - usedYear + date['y'])}-${padDigits(finalDate.getUTCMonth() + 1)}-${padDigits(finalDate.getUTCDate())}T01:01:01`
-                    console.log(str)
-                    finalDate = new Date(str)
+                    finalDate = new Date(`${padYear(finalDate.getUTCFullYear() - usedYear + date['y'])}-${padDigits(finalDate.getUTCMonth() + 1)}-${padDigits(finalDate.getUTCDate())}T01:01:01`)
                 }
 
                 document.getElementById('real-date').innerText = getDateString(finalDate)

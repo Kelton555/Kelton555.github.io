@@ -6,6 +6,39 @@
                 return date.toISOString().split('T')[0]
             }
 
+            function padYear(year) {
+                let tmp = Math.trunc(Math.abs(year)).toString()
+                if (year < 0) {
+                    while (tmp.length < 6) {
+                        tmp = "0"+tmp
+                    }
+                    return "-" + tmp
+                } else if (year > 9999) {
+                    while (tmp.length < 6) {
+                        tmp = "0" + tmp
+                    }
+                    return "+" + tmp
+                } else { // 0000-9999
+                    while (tmp.length < 4) {
+                        tmp = "0" + tmp
+                    }
+                    return tmp
+                }
+            }
+
+            function padDigits(num) {
+                let tmp = Math.round(num).toString()
+                if (tmp.length < 2) {
+                    tmp = "0" + tmp
+                }
+                return tmp
+            }
+
+            function shouldPreserveYear(yearStr) {
+                yearStr = yearStr.split('.')[0]
+                return (yearStr.startsWith('-') && yearStr.length >= 5) || (!yearStr.startsWith('-') && yearStr.length >= 4)
+            }
+
             function dateToDigits() {
                 let formInfo = new FormData(document.getElementById('input-form'))
                 let dat = formInfo.get('date').split("/")
@@ -15,20 +48,28 @@
                 if (format == "DD/MM/YY[YY]") {
                     data['d'] = parseFloat(dat[0])
                     data['m'] = parseFloat(dat[1])
-                    data['y'] = parseFloat(dat[2])
+                    data['y'] = dat[2]
                 } else if (format == "MM/DD/YY[YY]") {
                     data['m'] = parseFloat(dat[0])
                     data['d'] = parseFloat(dat[1])
-                    data['y'] = parseFloat(dat[2])
+                    data['y'] = dat[2]
                 } else if (format == "YY[YY]/MM/DD") {
-                    data['y'] = parseFloat(dat[0])
+                    data['y'] = dat[0]
                     data['m'] = parseFloat(dat[1])
                     data['d'] = parseFloat(dat[2])
                 } else if (format == "YY[YY]/DD/MM") {
-                    data['y'] = parseFloat(dat[0])
+                    data['y'] = dat[0]
                     data['d'] = parseFloat(dat[1])
                     data['m'] = parseFloat(dat[2])
                 }
+
+                let preserve = shouldPreserveYear(data['y'])
+                data['y'] = parseFloat(data['y'])
+                if (!preserve) {
+                    data['y'] += 2000
+                }
+
+                data['m'] -= 1 // javascript has months 0 indexed
 
                 return data
             }
@@ -38,18 +79,30 @@
 
                 let date = dateToDigits()
 
-                if (date['y'] < 1000) {
-                    date['y'] += 2000
-                }
-                date['m'] -= 1 // javascript has months 0 indexed
+                let usedYear = date['y']
+                let modifiedYear = false
+                if (Math.abs(usedYear) < 100) {
+                    // some evil compression will happen and i need to be eviler to fix it
+                    // this is only triggered if a year less than 100 from 0 is entered with leading zeroes to not convert to 2000s
+                    // e.g. 1/1/0000
 
-                let startDate = new Date(Date.UTC(date['y'], date['m'], date['d'] + (date['y'] % 1) * (365.25)))
+                    usedYear = Math.floor(usedYear) + 2000 // this should handle leap years maybe? polarity should work idk
+                    modifiedYear = true
+                }
+
+                let startDate = new Date(Date.UTC(usedYear, date['m'], date['d'] + (date['y'] % 1) * (365.25)))
 
                 let dayOffset = 0
                 dayOffset += (date['m'] % 1) * (new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth()+1, 0))).getUTCDate()
                 dayOffset += date['d'] % 1
 
                 let finalDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate() + Math.round(dayOffset)))
+                if (modifiedYear) { // it's time to strike
+                    let str = `${padYear(finalDate.getUTCFullYear() - usedYear + date['y'])}-${padDigits(finalDate.getUTCMonth() + 1)}-${padDigits(finalDate.getUTCDate())}T01:01:01`
+                    console.log(str)
+                    finalDate = new Date(str)
+                }
+
                 document.getElementById('real-date').innerText = getDateString(finalDate)
             }
 
@@ -83,4 +136,5 @@
             document.getElementById('input-form').addEventListener('submit', parseDate)
         </script>
     </body>
+    
 </html>

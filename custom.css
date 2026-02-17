@@ -31,6 +31,7 @@ div.section-list-container {
     text-align: center;
     justify-self: center;
     padding-top: 2ch;
+    display: grid;
 }
 
 div.section-list-container > ul {
@@ -66,7 +67,7 @@ a:link {
 body {
     background-image: radial-gradient(#aaa5c4 90%, #7d72ab 10%);
     height: 100%;
-    display: flexbox;
+    display: grid;
     background-repeat: no-repeat;
     background-attachment: fixed;
     align-content: center;
@@ -77,4 +78,5 @@ hr {
     background-color: rgb(109, 109, 109);
     height: 2px;
     border-width: 0;
+
 }

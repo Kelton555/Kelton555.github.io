@@ -218,7 +218,7 @@ function displayData() {
     // for each displayed tier, create a header with that many stars
     for (let i = 0; i < displayedTiers.length; i++) {
         headInside += "<th>"
-        for (let j = 0; j <= i; j++) {
+        for (let j = 0; j <= displayedTiers[i]; j++) {
             headInside += "&#11088;"
         }
         headInside += "</th>"

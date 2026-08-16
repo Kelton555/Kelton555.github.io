@@ -206,7 +206,7 @@ function displayData() {
     }); // sort by score, then name
 
     // *** part 2: create the html table header
-    let headStart = `<thead><tr><th>rank</th><th>score</th><th>name</th>`
+    let headStart = `<thead><tr><th>rank</th><th>score</th><th class="sorttable_alpha">name</th>`
     let headEnd = `</tr></thead>`
 
     let headInside = ""

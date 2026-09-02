@@ -1,0 +1,56 @@
+<html>
+    <head>
+        <title>chemistry memory quizzer</title>
+        <script src="chem-quizzer.js" defer></script>
+        <link href="chem-quizzer.css" rel="stylesheet">
+    </head>
+    <body>
+        <p>because apparently everything herein must be fully memorized<br/>
+        <i>at least we get a periodic table</i></p>
+
+        <hr/>
+
+        <form id="chem-quiz">
+            <div id="quiz-settings">
+                <p>Select quiz settings:</p>
+                <p><b>Quiz Type:</b></p>
+
+                <input type="radio" id="form2name" value="form2name" name="quiz-type">
+                <label for="form2name">Formula -> Name</label>
+                <br>
+                <input type="radio" id="name2form" value="name2form" name="quiz-type">
+                <label for="name2form">Name -> Formula</label>
+                <br>
+                <input type="radio" id="random" value="random" name="quiz-type" checked>
+                <label for="random">Randomize</label>
+
+                <div class="" id="q-tag-div">
+                    <p class="dropdown-toggle"><b>Chemical Tags:</b></p>
+                    
+                </div>
+                <div class="" id="q-set-div">
+                    <p class="dropdown-toggle"><b>Chemical Sets:</b></p>
+                    
+                </div>
+
+            </div>
+            <hr>
+            <div id="question-section">
+                <p id="question-desc">Select some chemical sets above</p>
+                <p id="question-chem">Then click "Next Question" to start!</p>
+            </div>
+            <div id="answer-section">
+                <label for="answer">Your answer:</label>
+                <input type="text" name="answer" id="answer"> <a hidden id="check-result" style="color: red;"></a>
+
+                <p>Correct answer: <a id="correct-answer"></a></p>
+            </div>
+            <hr> 
+        </form>
+        <div id="button-section">
+            <button onclick="CHEM_QUIZ_CONTAINER.checkAnswer()">Check Answer</button>
+            <button onclick="CHEM_QUIZ_CONTAINER.showAnswer()">Show Answer</button>
+            <button onclick="CHEM_QUIZ_CONTAINER.nextQuestion()">Next Question</button>
+        </div>
+    </body>
+</html>

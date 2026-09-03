@@ -27,6 +27,7 @@
             <form id="score-per-difficulty"></form>
             <button onclick="HLIST_CODE_CONTAINER.updateScoring()">change scoring</button>
         </div>
+        <script>document.getElementById("score-per-difficulty").addEventListener("submit", e => {e.preventDefault(); HLIST_CODE_CONTAINER.updateScoring();});</script>
 
         <canvas id="data-graph" style="max-width:600px; max-height: 400px;"></canvas>
 

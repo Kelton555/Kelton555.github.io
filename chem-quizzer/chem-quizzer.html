@@ -47,6 +47,7 @@
             </div>
             <hr> 
         </form>
+        <script>document.getElementById("chem-quiz").addEventListener("submit", e => {e.preventDefault(); CHEM_QUIZ_CONTAINER.checkAnswer();});</script>
         <div id="button-section">
             <button onclick="CHEM_QUIZ_CONTAINER.checkAnswer()">Check Answer</button>
             <button onclick="CHEM_QUIZ_CONTAINER.showAnswer()">Show Answer</button>

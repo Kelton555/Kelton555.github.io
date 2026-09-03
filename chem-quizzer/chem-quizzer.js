@@ -210,9 +210,11 @@ const CHEM_QUIZ_CONTAINER = {};
                 correctAnswer = currentChemical.formula
                 correctCharge = currentChemical.charge
 
-                userChargeLabel.removeAttribute("hidden")
-                userChargeBox.removeAttribute("hidden")
-                userChargeBox.value = 0
+                if (currentChemical.charge != 0) {
+                    userChargeLabel.removeAttribute("hidden")
+                    userChargeBox.removeAttribute("hidden")
+                    userChargeBox.value = 0
+                }
 
                 caseSensitive = true
             break;

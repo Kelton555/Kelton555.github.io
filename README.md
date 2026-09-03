@@ -13,3 +13,8 @@ MIT license
 
 ## ASP Number Link Solver
 Refer to linked repository
+
+## Chemistry Memory Quiz
+This is mostly for personal use, but I'll accept functionality improvements or additional chemical sets not part of my memorization routine
+
+MIT license

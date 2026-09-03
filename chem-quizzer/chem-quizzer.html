@@ -36,18 +36,28 @@
             </div>
             <hr>
             <div id="question-section">
-                <p id="question-desc">Select some chemical sets above</p>
+                <p id="question-desc">Select some chemical sets/tags above</p>
                 <p id="question-chem">Then click "Next Question" to start!</p>
             </div>
             <div id="answer-section">
                 <label for="answer">Your answer:</label>
-                <input type="text" name="answer" id="answer"> <a hidden id="check-result" style="color: red;"></a>
+                <input type="text" name="answer" id="answer"> 
+                <label for="charge" id="user-charge-label" hidden>Charge:</label> <input hidden type="number" id="charge" step="1" value="0" min="-100" max="100">
+                <a hidden id="check-result" style="color: red;"></a>
 
                 <p>Correct answer: <a id="correct-answer"></a></p>
             </div>
             <hr> 
         </form>
-        <script>document.getElementById("chem-quiz").addEventListener("submit", e => {e.preventDefault(); CHEM_QUIZ_CONTAINER.checkAnswer();});</script>
+        <script>document.getElementById("chem-quiz").addEventListener("submit", e => {
+            e.preventDefault(); 
+            
+            if (document.getElementById("check-result").textContent.startsWith("Correct!")) {
+                CHEM_QUIZ_CONTAINER.nextQuestion();
+            } else {
+                CHEM_QUIZ_CONTAINER.checkAnswer();
+            }
+        });</script>
         <div id="button-section">
             <button onclick="CHEM_QUIZ_CONTAINER.checkAnswer()">Check Answer</button>
             <button onclick="CHEM_QUIZ_CONTAINER.showAnswer()">Show Answer</button>

@@ -28,10 +28,11 @@ const CHEM_QUIZ_CONTAINER = {};
     }
 
     // helper function to make chem object inline
-    function chem(name, formula) {
+    function chem(name, formula, charge=0) {
         return {
             name: name,
-            formula: formula
+            formula: formula,
+            charge: charge
         }
     }
 
@@ -40,49 +41,49 @@ const CHEM_QUIZ_CONTAINER = {};
         minus_one_charge_polyatomics: {
             tags: ["PolyatomicIons"],
             list: [
-                chem("Acetate", "C2H3O2"),
-                chem("Nitrite", "NO2"),
-                chem("Nitrate", "NO3"),
-                chem("Cyanide", "CN"),
-                chem("Hydroxide", "OH"),
-                chem("Hypoclorite", "ClO"),
-                chem("Chlorite", "ClO2"),
-                chem("Chlorate", "ClO3"),
-                chem("Perchlorate", "ClO4"),
-                chem("Permanganate", "MnO4"),
-                chem("Hydrogen sulfite", "HSO3"),
-                chem("Hydrogen sulfate", "HSO4"),
-                chem("Hydrogen carbonate", "HCO3"),
-                chem("Dihydrogen phosphate", "H2PO4")
+                chem("Acetate", "C2H3O2", -1),
+                chem("Nitrite", "NO2", -1),
+                chem("Nitrate", "NO3", -1),
+                chem("Cyanide", "CN", -1),
+                chem("Hydroxide", "OH", -1),
+                chem("Hypoclorite", "ClO", -1),
+                chem("Chlorite", "ClO2", -1),
+                chem("Chlorate", "ClO3", -1),
+                chem("Perchlorate", "ClO4", -1),
+                chem("Permanganate", "MnO4", -1),
+                chem("Hydrogen sulfite", "HSO3", -1),
+                chem("Hydrogen sulfate", "HSO4", -1),
+                chem("Hydrogen carbonate", "HCO3", -1),
+                chem("Dihydrogen phosphate", "H2PO4", -1)
             ]
         },
         minus_two_charge_polyatomics: {
             tags: ["PolyatomicIons"],
             list: [
-                chem("Sulfite", "SO3"),
-                chem("Sulfate", "SO4"),
-                chem("Carbonate", "CO3"),
-                chem("Silicate", "SiO3"),
-                chem("Oxalate", "C2O4"),
-                chem("Peroxide", "O2"),
-                chem("Chromate", "CrO4"),
-                chem("Dichromate", "Cr2O7"),
-                chem("Hydrogen phosphate", "HPO4")
+                chem("Sulfite", "SO3", -2),
+                chem("Sulfate", "SO4", -2),
+                chem("Carbonate", "CO3", -2),
+                chem("Silicate", "SiO3", -2),
+                chem("Oxalate", "C2O4", -2),
+                chem("Peroxide", "O2", -2),
+                chem("Chromate", "CrO4", -2),
+                chem("Dichromate", "Cr2O7", -2),
+                chem("Hydrogen phosphate", "HPO4", -2)
             ]
         },
         minus_three_charge_polyatomics: {
             tags: ["PolyatomicIons"],
             list: [
-                chem("Phosphite", "PO3"),
-                chem("Phosphate", "PO4"),
-                chem("Arsenate", "AsO4")
+                chem("Phosphite", "PO3", -3),
+                chem("Phosphate", "PO4", -3),
+                chem("Arsenate", "AsO4", -3)
             ]
         },
         plus_one_charge_polyatomics: {
             tags: ["PolyatomicIons"],
             list: [
-                chem("Ammonium", "NH4"),
-                chem("Hydronium", "H3O")
+                chem("Ammonium", "NH4", 1),
+                chem("Hydronium", "H3O", 1)
             ]
         },
         strong_acids: {
@@ -123,6 +124,7 @@ const CHEM_QUIZ_CONTAINER = {};
     // the chemical of the current question
     let currentChemical = null
     let correctAnswer = ""
+    let correctCharge = 0
     let caseSensitive = false
 
     // 0 for input name, 1 for input formula
@@ -143,9 +145,9 @@ const CHEM_QUIZ_CONTAINER = {};
 
     // updates the current quiz type variable from form info
     function updateCurrentQuizType() {
-        dat = new FormData(document.getElementById("chem-quiz"))
+        let dat = new FormData(document.getElementById("chem-quiz"))
 
-        qType = dat.get("quiz-type")
+        let qType = dat.get("quiz-type")
 
         switch (qType) {
             case 'form2name':
@@ -163,6 +165,8 @@ const CHEM_QUIZ_CONTAINER = {};
     let questionDescText = document.getElementById("question-desc")
     let questionChemText = document.getElementById("question-chem")
 
+    let userChargeLabel = document.getElementById("user-charge-label")
+
     let correctAnswerText = document.getElementById("correct-answer")
     let userAnswerBox = document.getElementById("answer")
 
@@ -171,6 +175,9 @@ const CHEM_QUIZ_CONTAINER = {};
         correctAnswerText.textContent = ""
         userAnswerBox.value = ""
         checkResultText.setAttribute("hidden", "")
+
+        userChargeLabel.setAttribute("hidden", "")
+        userChargeBox.setAttribute("hidden", "")
 
         if (quizzableChems.size < 1) {
             window.alert("Must have at least one chemical to quiz on")
@@ -190,30 +197,47 @@ const CHEM_QUIZ_CONTAINER = {};
             case 0: // user inputs name
                 questionDescText.textContent = "Name the following chemical:"
                 questionChemText.textContent = currentChemical.formula
+                if (currentChemical.charge != 0) {
+                    questionChemText.textContent += ` Charge: ${currentChemical.charge}`
+                }
                 correctAnswer = currentChemical.name
                 caseSensitive = false
+                correctCharge = -999999
             break;
             case 1: // user inputs formula
                 questionDescText.textContent = "Input the formula of the following chemical:"
                 questionChemText.textContent = currentChemical.name
                 correctAnswer = currentChemical.formula
+                correctCharge = currentChemical.charge
+
+                userChargeLabel.removeAttribute("hidden")
+                userChargeBox.removeAttribute("hidden")
+                userChargeBox.value = 0
+
                 caseSensitive = true
             break;
         }
     }
     CHEM_QUIZ_CONTAINER.nextQuestion = nextQuestion
 
-    checkResultText = document.getElementById("check-result")
+    let checkResultText = document.getElementById("check-result")
+
+    let userChargeBox = document.getElementById("charge")
     // checks the user's answer and gives feedback
     function checkAnswer() {
-        correct = false
+        let correct = false
 
-        userAnswer = userAnswerBox.value.trim()
+        let userAnswer = userAnswerBox.value.trim()
+        let userCharge = parseInt(userChargeBox.value.trim())
 
         if (caseSensitive) {
             correct = (correctAnswer == userAnswer)
         } else {
             correct = (correctAnswer.toLowerCase() == userAnswer.toLowerCase())
+        }
+
+        if (correctCharge > -500) {
+            correct = correct && (userCharge == correctCharge)
         }
 
         if (correct) {
@@ -230,16 +254,19 @@ const CHEM_QUIZ_CONTAINER = {};
     // shows the answer to the current question
     function showAnswer() {
         correctAnswerText.textContent = correctAnswer
+        if (correctCharge > -500) {
+            correctAnswerText.textContent += ` Charge: ${correctCharge}`
+        }
     }
     CHEM_QUIZ_CONTAINER.showAnswer = showAnswer
 
     // updates the internal selectors for quiz items, generating
     //   a list of all the valid chemicals to quiz on
     function updateQuizSelections() {
-        dat = new FormData(document.getElementById("chem-quiz"))
+        let dat = new FormData(document.getElementById("chem-quiz"))
 
-        groups = dat.getAll('chem-group')
-        tags = dat.getAll('chem-tag')
+        let groups = dat.getAll('chem-group')
+        let tags = dat.getAll('chem-tag')
         
         quizzableChems.clear()
         previousChemicals = []

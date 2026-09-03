@@ -208,9 +208,11 @@ const CHEM_QUIZ_CONTAINER = {};
                 questionDescText.textContent = "Input the formula of the following chemical:"
                 questionChemText.textContent = currentChemical.name
                 correctAnswer = currentChemical.formula
-                correctCharge = currentChemical.charge
-
-                if (currentChemical.charge != 0) {
+                
+                if (currentChemical.charge == 0) {
+                    correctCharge = -9999999
+                } else {
+                    correctCharge = currentChemical.charge
                     userChargeLabel.removeAttribute("hidden")
                     userChargeBox.removeAttribute("hidden")
                     userChargeBox.value = 0

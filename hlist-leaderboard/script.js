@@ -110,7 +110,8 @@ function processData(data) {
     // the list has an empty row at the bottom before the first tier, so we start at -1
     // also 1 star is tierIndex==0, etc.
     for (let i = unprocessedClears.length - 1; i >= 0; i--) {
-        if (unprocessedClears[i].length == 0) { // each tier is deliminated by a zero-length row
+        if (unprocessedClears[i].length <= 1) { // each tier is NOW deliminated by a 1 length row containing an integer
+            // TODO: this should really be fixed to parse said integer but...
             tierIndex += 1; // move to the next tier
         } else if (unprocessedClears[i][0].startsWith("\u2B50") || unprocessedClears[i][0] == '') { // skip tier header rows without any processing
             continue;

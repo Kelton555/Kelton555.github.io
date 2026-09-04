@@ -46,7 +46,7 @@ const CHEM_QUIZ_CONTAINER = {};
                 chem("Nitrate", "NO3", -1),
                 chem("Cyanide", "CN", -1),
                 chem("Hydroxide", "OH", -1),
-                chem("Hypoclorite", "ClO", -1),
+                chem("Hypochlorite", "ClO", -1),
                 chem("Chlorite", "ClO2", -1),
                 chem("Chlorate", "ClO3", -1),
                 chem("Perchlorate", "ClO4", -1),

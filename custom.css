@@ -66,6 +66,17 @@ footer {
     justify-self: center;
 }
 
+.social-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.social-links > * {
+    padding-left: 0.1ch;
+    padding-right: 0.1ch;
+}
+
 /* general */
 
 a:link {

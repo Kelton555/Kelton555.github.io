@@ -88,6 +88,10 @@ a:link {
     color: var(--link_color);
 }
 
+h1 {
+    font-family: serif;
+}
+
 body {
     background-image: radial-gradient(var(--background_main) 90%, var(--background_corners) 10%);
     height: 100%;
@@ -95,6 +99,7 @@ body {
     background-repeat: no-repeat;
     background-attachment: fixed;
     align-content: center;
+    font-family: serif;
 }
 
 hr {

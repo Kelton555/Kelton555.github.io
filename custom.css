@@ -1,3 +1,11 @@
+/* root (variables) */
+:root {
+    --link_color: #292a2a;
+    --background_main: #aaa5c4;
+    --background_corners: #7d72ab;
+    --hr_background_color: rgb(109, 109, 109);
+}
+
 /* header */
 
 header {
@@ -61,11 +69,11 @@ footer {
 /* general */
 
 a:link {
-    color: #292a2a;
+    color: var(--link_color);
 }
 
 body {
-    background-image: radial-gradient(#aaa5c4 90%, #7d72ab 10%);
+    background-image: radial-gradient(var(--background_main) 90%, var(--background_corners) 10%);
     height: 100%;
     display: grid;
     background-repeat: no-repeat;
@@ -75,8 +83,7 @@ body {
 
 hr {
     color: black;
-    background-color: rgb(109, 109, 109);
+    background-color: var(--hr_background_color);
     height: 2px;
     border-width: 0;
-
 }

@@ -1,6 +1,17 @@
 <html>
   <head>
     <title>🧌 we are in conTROLL</title>
+    <style>
+      .mobileOnly {
+        display: none;
+      }
+
+      @media only screen and (max-width: 768px) {
+        .mobileOnly {
+          display: block;
+        }
+      }
+    </style>
     <script>
       const TROLLS = []
 
@@ -105,6 +116,14 @@
         document.getElementById("troll-box").appendChild(troll)
       }
 
+      function addNTrolls() {
+        let n = parseInt(window.prompt("🧌s?"))
+
+        for (i = 0; i < n; i++) {
+          addTroll()
+        }
+      }
+
       // me when i google and copy and  past ehte first result https://stackoverflow.com/questions/16089421/how-do-i-detect-keypresses-in-javascript
       document.onkeypress = function (e) {
         e = e || window.event
@@ -112,11 +131,7 @@
         if (e.key === "t") {
           addTroll()
         } else if (e.key === "T") {
-          let n = parseInt(window.prompt("🧌s?"))
-
-          for (i = 0; i < n; i++) {
-            addTroll()
-          }
+          addNTrolls()
         }
       }
     </script>
@@ -125,6 +140,12 @@
     <h1>we are IN conTROLL!!!!!</h1>
     <p>🧌🧌🧌🧌🧌🧌🧌🧌</p>
     <p>press 't' to unleash a 🧌. press "T" (with passion) to unleash n-🧌s</p>
+    <div class="mobileOnly">
+      <p>🧌 magic tells me you might not have a keyboard, have these buttons instead:</p>
+      <button onclick="addTroll()">🧌</button>
+      <button onclick="addNTrolls()">🧌🧌🧌🧌🧌</button>
+    </div>
+    <p class="mobileOnly"></p>
     <div id="troll-box" style="width: 90%; height: 90%; border: 1px black solid; justify-self: center; contain: content;">
 
     </div>

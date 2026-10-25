@@ -1,9 +1,132 @@
 <html>
   <head>
     <title>🧌 we are in conTROLL</title>
+    <script>
+      const TROLLS = []
+
+      const SPEED = 0.05
+
+      const MAX_POS = 95
+      const MIN_POS = 0
+
+      function makeTrollCollision() {
+        let trollCollision = []
+        let _trolinternal = []
+
+        for (i = 0; i < 100; i++) {
+          _trolinternal.push(0)
+        }
+
+        for (i = 0; i < 100; i++) {
+          trollCollision.push(_trolinternal.slice())
+        }
+
+        return trollCollision
+      }
+
+      function updateTrolls() {
+        let trollCollision = makeTrollCollision()
+
+        TROLLS.forEach(troll => {
+          let posx = parseFloat(troll.style['left'].split("%")[0])
+          let posy = parseFloat(troll.style['top'].split("%")[0])
+
+          let dirx = parseInt(troll.getAttribute("data-signx"))
+          let diry = parseInt(troll.getAttribute("data-signy"))
+
+          posx += dirx * SPEED;
+          posy += diry * SPEED;
+
+          if (posy <= MIN_POS || MAX_POS <= posy) {
+            posy = Math.max(MIN_POS, Math.min(MAX_POS, posy))
+            diry *= -1
+          }
+
+          if (posx <= MIN_POS || MAX_POS <= posx) {
+            posx = Math.max(MIN_POS, Math.min(MAX_POS, posx))
+            dirx *= -1
+          }
+
+          // this is REALLY funny but it also cannot possibly support my desired volume of trollage
+          // for (k in trolls) {
+          //   troll2 = trolls[k]
+          //   if (troll2 != troll) {
+          //     pos2x = parseFloat(troll2.style['left'].split("%")[0])
+          //     pos2y = parseFloat(troll2.style['top'].split("%")[0])
+
+          //     if (((pos2x - margin) <= posx && posx <= (pos2x + margin)) && ((pos2y - margin) <= posy && posy <= (pos2y + margin))) {
+          //       dirx *= -1
+          //       diry *= -1
+          //       break
+          //     }
+          //   }
+          // }
+
+          trollCollision[Math.floor(posx)][Math.floor(posy)] += 1
+
+          troll.style['left'] = `${posx}%`
+          troll.style['top'] = `${posy}%`
+
+          troll.setAttribute("data-signx", dirx)
+          troll.setAttribute("data-signy", diry)
+        });
+
+        TROLLS.forEach(troll => {
+          let posx = parseFloat(troll.style['left'].split("%")[0])
+          let posy = parseFloat(troll.style['top'].split("%")[0])
+
+          let dirx = parseInt(troll.getAttribute("data-signx"))
+          let diry = parseInt(troll.getAttribute("data-signy"))
+
+          if (trollCollision[Math.floor(posx)][Math.floor(posy)] > 1) {
+            dirx *= -1
+            diry *= -1
+          }
+
+          troll.setAttribute("data-signx", dirx)
+          troll.setAttribute("data-signy", diry)
+        })
+      }
+
+      setInterval(updateTrolls, 0.05)
+
+      function addTroll() {
+        let troll = document.createElement("p")
+        troll.innerHTML = "🧌"
+        TROLLS.push(troll)
+
+        troll.style['position'] = "absolute"
+        troll.style['top'] = `${Math.random()*100}%`
+        troll.style['left'] = `${Math.random()*100}%`
+        troll.style['font-size'] = 25
+        troll.setAttribute("data-signx", Math.sign(Math.random()-0.5))
+        troll.setAttribute("data-signy", Math.sign(Math.random()-0.5))
+
+        document.getElementById("troll-box").appendChild(troll)
+      }
+
+      // me when i google and copy and  past ehte first result https://stackoverflow.com/questions/16089421/how-do-i-detect-keypresses-in-javascript
+      document.onkeypress = function (e) {
+        e = e || window.event
+
+        if (e.key === "t") {
+          addTroll()
+        } else if (e.key === "T") {
+          let n = parseInt(window.prompt("🧌s?"))
+
+          for (i = 0; i < n; i++) {
+            addTroll()
+          }
+        }
+      }
+    </script>
   </head>
   <body>
     <h1>we are IN conTROLL!!!!!</h1>
     <p>🧌🧌🧌🧌🧌🧌🧌🧌</p>
+    <p>press 't' to unleash a 🧌. press "T" (with passion) to unleash n-🧌s</p>
+    <div id="troll-box" style="width: 90%; height: 90%; border: 1px black solid; justify-self: center; contain: content;">
+
+    </div>
   </body>
 </html>

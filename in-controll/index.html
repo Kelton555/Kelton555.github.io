@@ -3,14 +3,16 @@
     <title>🧌 we are in conTROLL</title>
     <style>
       .mobileOnly {
-        display: none;
+          display: block;
       }
 
-      @media only screen and (max-width: 768px) {
+      /* we're trying this now https://stackoverflow.com/questions/36976117/css-media-query-for-whether-a-physical-keyboard-is-attached */
+      @media (hover: hover) and (pointer: fine) {
         .mobileOnly {
-          display: block;
+          display: none;
         }
       }
+
     </style>
     <script>
       const TROLLS = []

@@ -92,8 +92,8 @@
           let diry = parseInt(troll.getAttribute("data-signy"))
 
           if (trollCollision[Math.floor(posx)][Math.floor(posy)] > 1) {
-            dirx *= -1
-            diry *= -1
+            dirx *= (Math.random()>0.33 ? -1 : 1)
+            diry *= (Math.random()>0.33 ? -1 : 1)
           }
 
           troll.setAttribute("data-signx", dirx)

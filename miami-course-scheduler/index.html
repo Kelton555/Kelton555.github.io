@@ -1,0 +1,164 @@
+<html>
+    <head>
+        <title>miami university course scheduling helper</title>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/clingo-wasm@0.6.0/dist/index.web.min.js"></script> <!-- clingo import -->
+        <script src="solver.js?v=1.11"></script>
+        <script defer>
+            // this inline script is used to interface between the solver and the html page
+            // if there is something in this script that belongs in the solver i have been very bad
+            
+            getTerms().then(terms => {
+                const TERM_SELECT = document.getElementById("term-selector")
+                terms.forEach(term => {
+                    let opt = document.createElement("option")
+                    opt.value = term['termId']
+                    opt.innerText = term['name']
+                    TERM_SELECT.appendChild(opt)
+                });
+            })
+            
+            function setInstructorPriorityVisibility(visible) {
+                const row = document.getElementById('dont-want-prof-priority-row')
+                if (visible) {
+                    row.hidden = false
+                } else {
+                    row.hidden = "hidden"
+                }
+            }
+        </script>
+    </head>
+    <body>
+        
+        <form id="scheduler-options-form">
+            <b>Term selection:</b>
+            <label for="term-selector">Select term:</label>
+            <select id="term-selector" name="term"></select>
+            <br><hr>
+            <b>Schedule pruning:</b>
+            <p><i>These options will rule out schedules that don't meet the requirements.</i></p>
+            <label for="min-hours-box">Minimum credit hours:</label>
+            <input id="min-hours-box" name="min-hours" type="number" value="12" step="1" size="2" min="0" max="30">
+            <br>
+            <label for="max-hours-box">Maximum credit hours:</label>
+            <input id="max-hours-box" name="max-hours" type="number" value="18" step="1" size="2" min="0" max="30">
+            <br>
+            <label for="day-off-box">Require at least one weekday with no classes? (Often results in no schedules when combined with strict requirements)</label>
+            <input type="checkbox" id="day-off-box" name="day-off">
+            <br><hr>
+            <b>Course list pruning:</b>
+            <p><i>These options will modify what courses will be considered for your schedules.</i></p>
+            <label for="acceptable-course-box">Enter acceptable courses (what you MIGHT take this term) comma separated:</label>
+            <textarea id="acceptable-course-box" name="acceptable-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="required-course-box">Enter required courses (what you MUST take this term) comma separated:</label>
+            <textarea id="required-course-box" name="required-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="restricted-course-box">Enter courses you DON'T want to take (e.g. to filter out specific miami plan classes) comma separated:</label>
+            <textarea id="restricted-course-box" name="restricted-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="restricted-instructor-box">Enter uniqueids of instructors you DON'T want to have, comma separated:</label>
+            <textarea id="restricted-instructor-box" name="restricted-instructors" placeholder="Comma separated list of uniqueids, e.g. ''"></textarea>
+            <br>
+            <label for="campus-selector">Select desired campus(es) (exclude any class not at these):</label>
+            <select id="campus-selector" name="campus"></select>
+            <br>
+            <label for="perspective-areas-selector">Select desired perspective areas (include any class with one of these):</label>
+            <select id="perspective-areas-selector" name="perspective-areas"></select>
+            <br><hr>
+            <b>Schedule optimizing:</b>
+            <p><i>These options won't add or remove potential courses, but they will impact which possible schedules are displayed.</i></p>
+            <label for="desired-instructors-box">Enter uniqueids of instructors you'd like to have, comma separated:</label>
+            <textarea id="desired-instructors-box" name="desired-instructors" placeholder="Comma separated list of uniqueids, e.g. ''"></textarea>
+            <br>
+            <label for="preferred-courses-box">Enter courses you'd prefer to take but don't have to take this term:</label>
+            <textarea id="preferred-courses-box" name="preferred-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="preferred-max-hours-box">Preferred maximum credit hours (lower or equal to required maximum):</label>
+            <input id="preferred-max-hours-box" name="preferred-max-hours" type="number" value="18" step="1" size="2" min="0" max="30">
+            <br>
+            <label for="preferred-start-time-box">Preferred daily class start time (prefer schedules where no class starts before this time):</label>
+            <input type="time" id="preferred-start-time-box" name="preferred-start-time" value="08:00">
+            <br>
+            <label for="preferred-end-time-box">Preferred daily class end time (prefer schedules where no class end after this time):</label>
+            <input type="time" id="preferred-end-time-box" name="preferred-end-time" value="18:00">
+            <br><hr>
+            <b>Optimization configuration:</b>
+            <p><i>
+                These options tune the way that optimizations are made to your schedule. 
+                For example, you can determine which optional criteria are most important to you.
+                You can also select whether certain criteria should be required or optional (e.g. having a specific perspective area).
+            </i></p>
+            <br>
+            <label for="opt-restricted-instructor-box">Are you willing to take a class with an instructor you don't want to have?</label>
+            <input type="checkbox" id="opt-restricted-instructor-box" name="opt-restricted-instructor" onchange="setInstructorPriorityVisibility(this.checked)">
+            <br>
+            <p>Are there any perspective areas you MUST take this term?</p>
+            <div id="required-perspective-areas-div"><!--TODO: generate this with a script --></div>
+            <br>
+            <p>
+                Select a priority level for each optimization preference.
+                1 is the highest priority, 9 is the lowest, and N/A means to ignore that attribute when optimizing.
+            </p>
+            <fieldset>
+                <legend>Priorities</legend>
+                <table>
+                    <thead><tr>
+                        <th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>N/A</th>
+                    </tr></thead>
+                    <tr>
+                        <th>Start time</th>
+                        <td><input type="radio" name="start-time-priority" value="1"></td>
+                        <td><input type="radio" name="start-time-priority" value="2"></td>
+                        <td><input type="radio" name="start-time-priority" value="3"></td>
+                        <td><input type="radio" name="start-time-priority" value="4"></td>
+                        <td><input type="radio" name="start-time-priority" value="5"></td>
+                        <td><input type="radio" name="start-time-priority" value="6"></td>
+                        <td><input type="radio" name="start-time-priority" value="7"></td>
+                        <td><input type="radio" name="start-time-priority" value="8"></td>
+                        <td><input type="radio" name="start-time-priority" value="9"></td>
+                        <td><input type="radio" name="start-time-priority" value="0" checked></td>
+                    </tr>
+                    <tr>
+                        <th>End time</th>
+                        <td><input type="radio" name="end-time-priority" value="1"></td>
+                        <td><input type="radio" name="end-time-priority" value="2"></td>
+                        <td><input type="radio" name="end-time-priority" value="3"></td>
+                        <td><input type="radio" name="end-time-priority" value="4"></td>
+                        <td><input type="radio" name="end-time-priority" value="5"></td>
+                        <td><input type="radio" name="end-time-priority" value="6"></td>
+                        <td><input type="radio" name="end-time-priority" value="7"></td>
+                        <td><input type="radio" name="end-time-priority" value="8"></td>
+                        <td><input type="radio" name="end-time-priority" value="9"></td>
+                        <td><input type="radio" name="end-time-priority" value="0" checked></td>
+                    </tr>
+                    <tr>
+                        <th>Preferred credit hours</th>
+                        <td><input type="radio" name="credit-hour-priority" value="1"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="2"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="3"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="4"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="5"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="6"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="7"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="8"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="9"></td>
+                        <td><input type="radio" name="credit-hour-priority" value="0" checked></td>
+                    </tr>
+                    <tr id="dont-want-prof-priority-row" hidden>
+                        <th>Unwanted instructor</th>
+                        <td><input type="radio" name="restricted-instructor-priority" value="1"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="2"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="3"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="4"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="5"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="6"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="7"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="8"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="9"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="0" checked></td>
+                    </tr>
+                </table>
+            </fieldset>
+        </form>
+    </body>
+</html>

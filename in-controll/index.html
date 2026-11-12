@@ -148,6 +148,11 @@
                 size = size + Math.round(((totalSizeNotSquared - 25*(colGroup.length-1)) - size))
 
                 winner.style['font-size'] = `${size+1}px`
+
+                if (size+1 > 28 && winner.getAttribute("data-islink") != "TRUE") {
+                  winner.setAttribute("data-islink", "TRUE")
+                  winner.innerHTML = `<a href="./downloads.html">${winner.innerHTML}</a>`
+                }
               }
             }
           }

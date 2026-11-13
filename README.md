@@ -18,3 +18,8 @@ Refer to linked repository
 This is mostly for personal use, but I'll accept functionality improvements or additional chemical sets not part of my memorization routine
 
 MIT license
+
+## Miami Course Scheduler
+Feel free to report issues or make contributions
+
+MIT license

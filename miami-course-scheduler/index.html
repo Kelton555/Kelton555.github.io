@@ -6,7 +6,7 @@
         <script defer>
             // this inline script is used to interface between the solver and the html page
             // if there is something in this script that belongs in the solver i have been very bad
-            
+
             function addCheckbox(divId, element) {
                 const BOX = document.getElementById(divId)
                 const ID = `_${divId}_${element['code']}`
@@ -65,9 +65,52 @@
                 return returnArray
             }
 
+            // creates a document element for a given course and returns it
+            // does not place element into document
+            function createCourseEventElement(course) {
+
+            }
+
+            // updates the schedule viewer to display the schedule with the given index
+            function updateScheduleViewer(scheduleIndex) {
+                const SCHEDULE = SCHEDULE_COURSES[parseInt(scheduleIndex)]
+
+                // get day elements; get offsets (offsetLeft, offsetRight)
+                // get time elements; get offset (offsetTop)
+                // calculate further vertical offset (from time element offsetHeight / 30 * mins past 30)
+                // wipe the calendar events span
+                // add new events for each scheduled day of each course
+
+            }
+            
+            // using the list of course schedules, fills out the selector for schedules
+            function initScheduleViewer() {
+                const SELECTOR = document.getElementById("schedule-index-selector")
+
+                SELECTOR.removeAttribute("hidden")
+                SELECTOR.innerHTML = ""
+
+                for (const i in SCHEDULE_COURSES) {
+                    const opt = document.createElement("option")
+                    opt.name = "schedule-index"
+                    opt.value = i
+                    opt.innerText = `Schedule ${parseInt(i)+1}`
+                    SELECTOR.appendChild(opt)
+                }
+
+                updateScheduleViewer(0)
+            }
+
+            // pseudo const
+            let SCHEDULE_COURSES = []
+            // runs the scheduler with the provided ASP DATA, saves the resulting data, then runs the schedule viewer init
             function runScheduler(ASP_INFO) {
                 runASPScheduler(ASP_INFO).then(schedules => {
-
+                    if (schedules.length != 0) { // we don't talk about failed runs
+                        console.log(schedules)
+                        SCHEDULE_COURSES = schedules
+                        initScheduleViewer()
+                    }
                 })
             }
 
@@ -81,6 +124,7 @@
 
                 // basic prereqs
                 ASP_INFO['termId'] = DATA.get("term")
+                ASP_INFO['maxSchedules'] = DATA.get("schedule-count")
 
                 // schedule pruning
                 ASP_INFO['hardMinHours'] = Math.floor(DATA.get("min-hours")*10)
@@ -97,6 +141,11 @@
 
                 ASP_INFO["campuses"] = DATA.getAll("campus-selection")
                 ASP_INFO['attributes'] = DATA.getAll("pa-selection")
+
+                if (ASP_INFO.campuses.length == 0) {
+                    window.alert("Make sure to select a campus!")
+                    return
+                }
 
                 // schedule optimizing
                 ASP_INFO["wantInstructors"] = makeArray(DATA.get("desired-instructors"))
@@ -115,14 +164,85 @@
                 runScheduler(ASP_INFO)
             }
         </script>
+        <style>
+            #calendar th, #calendar td {
+                border: 1px black solid;
+                border-collapse: collapse;
+            }
+        </style>
     </head>
     <body>
+        <div id="calendar" style="width: 95%; height:65%; justify-self:center; border:black 1px solid; margin:5px; overflow-y:scroll; contain:content;">
+            <table style="width:100%; height:100%; border-collapse: collapse;">
+                <thead>
+                    <tr><th>Time</th><th id="day-sunday">Sunday</th><th id="day-monday">Monday</th><th id="day-tuesday">Tuesday</th><th id="day-wednesday">Wednesday</th><th id="day-thursday">Thursday</th><th id="day-friday">Friday</th><th id="day-saturday">Saturday</th></tr>
+                </thead>
+                <tbody>
+                    <tr><th id="time-0">12:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-30">12:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-60">1:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-90">1:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-120">2:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-150">2:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-180">3:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-210">3:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-240">4:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-270">4:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-300">5:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-330">5:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-360">6:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-390">6:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-420">7:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-450">7:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-480">8:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-510">8:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-540">9:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-570">9:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-600">10:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-630">10:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-660">11:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-690">11:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-720">12:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-750">12:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-780">1:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-810">1:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-840">2:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-870">2:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-900">3:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-930">3:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-960">4:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-990">4:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1020">5:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1050">5:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1080">6:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1110">6:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1140">7:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1170">7:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1200">8:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1230">8:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1260">9:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1290">9:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1320">10:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1350">10:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1380">11:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1410">11:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                </tbody>
+            </table>
+            <span id="calendar-events">
+                <p style="position: absolute; top:10%; left:439px; overflow: visible;">test</p>
+            </span>
+        </div>
         <button onclick="parseForm()">Run scheduler!</button>
+        <select hidden id="schedule-index-selector"></select>
         <hr>
         <form id="scheduler-options-form">
-            <b>Term selection:</b>
+            <b>General settings:</b>
+            <br>
             <label for="term-selector">Select term:</label>
             <select id="term-selector" name="term"></select>
+            <br>
+            <label for="schedule-count-slider">Max schedules to generate (0=unlimited):</label>
+            <input id="schedule-count-slider" name="schedule-count" type="range" value="25" min="0" max="100" step="1" onchange="document.getElementById('slider-value-display').innerText = this.value"> <span id="slider-value-display">25</span>
             <br><hr>
             <b>Schedule pruning:</b>
             <p><i>These options will rule out schedules that don't meet the requirements.</i></p>

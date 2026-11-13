@@ -30,7 +30,7 @@ getCampuses = null;
 
 // (async function)
 // returns an array of schedules
-// schedules consist of a list of CRNs
+// schedules consist of a list of course objects
 runASPScheduler = null;
 
 class TimeWrapper {
@@ -56,12 +56,36 @@ class TimeWrapper {
         return this.#time
     }
 
+    getASPTimeBlock() {
+        return (Math.floor(this.#time / 30)) * 30
+    }
+
+    getTimeIntoBlock() {
+        return this.#time - this.getASPTimeBlock()
+    }
+
+    #format24Time(time) {
+        return `${Math.floor(time / 60)}:${time % 60}${time % 60 < 10 ? "0" : ""}`
+    }
+
+    #format12Time(time) {
+        return `${((Math.floor(time / 60) + 11) % 12) + 1}:${time % 60}${time % 60 < 10 ? "0" : ""} ${time >= (60 * 12) ? "PM" : "AM"}`
+    }
+
     get24Time() {
-        return `${Math.floor(this.#time / 60)}:${this.#time % 60}${this.#time % 60 < 10 ? "0" : ""}`
+        return this.#format24Time(this.#time)
+    }
+
+    get24TimeBlock() {
+        return this.#format24Time(this.getASPTimeBlock())
     }
 
     get12Time() {
-        return `${((Math.floor(this.#time / 60) + 11) % 12) + 1}:${this.#time % 60}${this.#time % 60 < 10 ? "0" : ""} ${this.#time >= (60 * 12) ? "PM" : "AM"}`
+        return this.#format12Time(this.#time)
+    }
+
+    get12TimeBlock() {
+        return this.#format12Time(this.getASPTimeBlock())
     }
 
     toString() {
@@ -126,6 +150,11 @@ class TimeWrapper {
 
         weekday(monday). weekday(tuesday). weekday(wednesday). weekday(thursday). weekday(friday).
         validTime(0..1440).
+
+        % maybe this fixes things
+        :~ 1=1. [0@100] 
+        % awesome, it does. i love ASP
+
     `
 
     function _forEachCourse(toCall) {
@@ -346,15 +375,20 @@ class TimeWrapper {
         }
     }
 
+    let COURSE_CRN_LOOKUP = {}
     function _getSchedulableCoursePredicates(ASP_INFO) {
         const TERM_COURSES = COURSE_DATA['terms'][ASP_INFO['termId']]['courses']
 
+        COURSE_CRN_LOOKUP = {}
+        
         const COURSES = new Set()
         const COURSE_HOURS = {}
         let returnStr = ""
         TERM_COURSES.forEach(course => {
             if (_isValidCourse(course, ASP_INFO)) {
                 returnStr += _makeASPCourse(course)
+
+                COURSE_CRN_LOOKUP[course['crn']] = course
 
                 const CODE = _getCourseCode(course)
                 if (!COURSES.has(CODE)) {
@@ -404,7 +438,29 @@ class TimeWrapper {
         // generate our course predicates based on ASP_INFO, and add to our program
         program += _getSchedulableCoursePredicates(ASP_INFO)
 
-        console.log(program)
+        program += "#show taking/1. "
+
+        // console.log(program)
+
+        await CLINGO.restart()
+        const RESULTS = await CLINGO.run(program, ASP_INFO["maxSchedules"], ["--quiet=1", "--opt-mode=optN"]) // we STRIKE!!!
+
+        // console.log(RESULTS)
+
+        // now we parse the results and return an array of arrays of course objects
+        let returnArray = []
+        if (!("Error" in RESULTS) && ("Witnesses" in RESULTS["Call"][0])) {
+            RESULTS["Call"][0]["Witnesses"].forEach(witness => {
+                let crnArray = []
+                witness['Value'].forEach(predicate => {
+                    if (predicate.startsWith("taking(") && predicate.endsWith(")")) {
+                        crnArray.push(COURSE_CRN_LOOKUP[predicate.slice("taking(".length).slice(0, -1)])
+                    }
+                })
+                returnArray.push(crnArray)
+            })
+        }
+        return returnArray
     }
     runASPScheduler = _runASPScheduler
 })()

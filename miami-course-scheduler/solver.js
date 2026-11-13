@@ -288,6 +288,38 @@ class TimeWrapper {
         return CODE
     }
 
+    // returns true if the course is fully web based (all non-trivial schedule times are in room WEB)
+    // otherwise false
+    function _isCourseFullyOnline(course) {
+        if ("schedules" in course) {
+            for (const k in course.schedules) {
+                const timeslot = course.schedules[k]
+                if ('buildingCode' in timeslot && timeslot.buildingCode != "WEB") {
+                    return false
+                }
+            }
+        } else {
+            return false
+        }
+
+        return true
+    }
+
+    // returns true if any non-trivial schedule time of the course has a room of web
+    // false otherwise
+    function _isCourseOnline(course) {
+        if ("schedules" in course) {
+            for (const k in course.schedules) {
+                const timeslot = course.schedules[k]
+                if ('buildingCode' in timeslot && timeslot.buildingCode == "WEB") {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
     // returns true if the course passes the checks in ASP_INFO
     // returns false if not
     function _isValidCourse(course, ASP_INFO) {
@@ -296,18 +328,25 @@ class TimeWrapper {
             return false
         } else if (!(ASP_INFO['campuses'].includes(course['campusCode']))) {
             return false
-        } else if (_unwantedProf(course, ASP_INFO)) {
+        } else if (!ASP_INFO['allowUnwantedInstructors'] && _unwantedProf(course, ASP_INFO)) {
+            return false
+        } else if (course['courseSectionStatusCode'] == "C") {
+            // course cancelled :(
             return false
         } else {
             // now we can dive in and check the course code
-           const CODE = _getCourseCode(course)
+            const CODE = _getCourseCode(course)
 
             if (ASP_INFO['avoidCourses'].includes(CODE)) {
                 return false
             }
 
+            if (!ASP_INFO['allowWeb'] && _isCourseOnline(course)) {
+                return false
+            }
+
             // after all the failure checks, now we check for explicitly things we want
-            if (ASP_INFO['possibleCourses'].includes(CODE) || ASP_INFO['requiredCourses'].includes(CODE)) {
+            if (ASP_INFO['possibleCourses'].includes(CODE) || ASP_INFO['requiredCourses'].includes(CODE) || ASP_INFO['wantCourses'].includes(CODE)) {
                 return true
             } else if (_desiredAttribute(course, ASP_INFO)) {
                 return true;
@@ -410,6 +449,10 @@ class TimeWrapper {
 
         // add the basic things the program expects
 
+        if (ASP_INFO['hardMaxHours'] < ASP_INFO['hardMinHours']) {
+            return [] // just exit early don't even give clingo a chance to think about this for 5 years
+        }
+
         program += `max_hours(${ASP_INFO['hardMaxHours']}). min_hours(${ASP_INFO['hardMinHours']}). `
         ASP_INFO['requiredCourses'].forEach(code => {
             program += `must_course(${code}). `
@@ -420,13 +463,34 @@ class TimeWrapper {
             program += ":- 5=#count{D: weekday(D), taking(X), schedule(X, _, _, D)}. "
         }
 
-        // ADD WHEN IMPLEMENTED HTML SIDE
-        // if (ASP_INFO['wantCoursePriority'] > 0) {
-        //     program += `:~ dev_want_course(C), taking(X), section(C, X). [-1@${ASP_INFO['wantCoursePriority']},C]`
-        //     ASP_INFO['wantCourses'].forEach(course => {
-        //         program += `dev_want_course(${course.toLowerCase()}). `
-        //     })
-        // }
+        if (ASP_INFO["softMinHoursPriority"] > 0) {
+            program += `:~ credit_hours(N), N < ${ASP_INFO['softMinHours']}. [1@${ASP_INFO['softMinHoursPriority']}] `
+        }
+
+        if (ASP_INFO["softMaxHoursPriority"] > 0) {
+            program += `:~ credit_hours(N), N > ${ASP_INFO['softMaxHours']}. [1@${ASP_INFO['softMaxHoursPriority']}] `
+        }
+
+        if (ASP_INFO['allowUnwantedInstructors'] && ASP_INFO['avoidInstructorsPriority'] > 0) {
+            program += `:~ taking(X), instructor(X, UID), dev_unwant_prof(UID). [1@${ASP_INFO['avoidInstructorsPriority']}, X] `
+            ASP_INFO.avoidInstructors.forEach(prof => {
+                program += `dev_unwant_prof(${prof}). `
+            })
+        }
+
+        if (ASP_INFO['wantInstructorsPriority'] > 0) {
+            program += `:~ taking(X), instructor(X, UID), dev_want_prof(UID). [-1@${ASP_INFO['wantInstructorsPriority']}, UID] `
+            ASP_INFO.wantInstructors.forEach(prof => {
+                program += `dev_want_prof(${prof}). `
+            })
+        }
+
+        if (ASP_INFO['wantCoursesPriority'] > 0) {
+            program += `:~ dev_want_course(C), taking(X), section(C, X). [-1@${ASP_INFO['wantCoursesPriority']}, C]`
+            ASP_INFO['wantCourses'].forEach(course => {
+                program += `dev_want_course(${course.toLowerCase()}). `
+            })
+        }
 
         if (ASP_INFO['startTimePriority'] > 0) {
             program += `:~ start_time(DAY, TIME), TIME<${ASP_INFO['softStartTime'].getASPTime()}. [1@${ASP_INFO['startTimePriority']}, DAY]`
@@ -459,6 +523,8 @@ class TimeWrapper {
                 })
                 returnArray.push(crnArray)
             })
+        } else if ("Error" in RESULTS) {
+            returnArray = "ERROR"
         }
         return returnArray
     }

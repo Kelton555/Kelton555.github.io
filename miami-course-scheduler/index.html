@@ -1,0 +1,530 @@
+<html>
+    <head>
+        <title>miami university course scheduling helper</title>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/clingo-wasm@0.6.0/dist/index.web.min.js"></script> <!-- clingo import -->
+        <script src="solver.js?v=1.11"></script>
+        <script defer>
+            // this inline script is used to interface between the solver and the html page
+            // if there is something in this script that belongs in the solver i have been very bad
+
+            function addCheckbox(divId, element) {
+                const BOX = document.getElementById(divId)
+                const ID = `_${divId}_${element['code']}`
+                let label = document.createElement("label")
+                label.setAttribute("for", ID)
+                label.innerText = element['name']
+                let checkbox = document.createElement("input")
+                checkbox.type = "checkbox"
+                checkbox.id = ID
+                checkbox.name = divId
+                checkbox.value = element['code']
+                BOX.appendChild(label)
+                BOX.appendChild(checkbox)
+                BOX.appendChild(document.createElement("br"))
+            }
+
+            getTerms().then(terms => {
+                const TERM_SELECT = document.getElementById("term-selector")
+                terms.forEach(term => {
+                    let opt = document.createElement("option")
+                    opt.value = term['termId']
+                    opt.innerText = term['name']
+                    TERM_SELECT.appendChild(opt)
+                });
+            })
+
+            getPerspectiveAreas().then(areas => {
+                areas.forEach(area => addCheckbox("pa-selection", area))
+            })
+
+            getCampuses().then(campuses => {
+                campuses.forEach(campus => addCheckbox("campus-selection", campus))
+            })
+            
+            function setInstructorPriorityVisibility(visible) {
+                const row = document.getElementById('dont-want-prof-priority-row')
+                if (visible) {
+                    row.hidden = false
+                } else {
+                    row.hidden = "hidden"
+                }
+            }
+
+            // makes an array by comma separating an input and removing all pre/post whitespace from each element
+            // also makes all strings lowercase for ease of equality checking
+            function makeArray(str) {
+                const returnArray = []
+
+                str.split(",").forEach(val => {
+                    val = val.trim()
+                    if (val != "") {
+                        returnArray.push(val.toLowerCase())
+                    }
+                })
+
+                return returnArray
+            }
+
+            const DAY_TO_NAME = {
+                "M": "monday",
+                "T": "tuesday",
+                "W": "wednesday",
+                "R": "thursday",
+                "F": "friday",
+                "S": "saturday",
+                "U": "sunday"
+            }
+
+            // creates the simple scaffolding for a course event
+            // writes the text and basic formatting, anything to place it in the calendar should be done externally
+            function createCourseEvent(course, timeslot, color) {
+                const EVENT = document.createElement("div")
+                EVENT.style.backgroundColor = color
+                EVENT.style.border = "1px black solid"
+                EVENT.innerHTML =
+                `${course['course']['subjectCode']} ${course['course']['number']}<br>
+                CRN: ${course['crn']}<br>
+                Credit Hours: ${course.creditHoursAvailable[0]}<br>
+                Campus: ${course['campusName']} <br>
+                ${('buildingCode' in timeslot && 'roomNumber' in timeslot && timeslot.buildingCode != null) ?
+                ("Room: " + timeslot.buildingCode + " " + (timeslot.roomNumber == null ? "" : timeslot.roomNumber) + "\n") :
+                ""
+                }<br>
+                `
+
+                return EVENT
+            }
+
+            // updates the schedule viewer to display the schedule with the given index
+            function updateScheduleViewer(scheduleIndex) {
+                const SCHEDULE = SCHEDULE_COURSES[parseInt(scheduleIndex)]
+                
+                document.getElementById("calendar").removeAttribute("hidden")
+
+                const EVENT_HOLDER = document.getElementById("calendar-events")
+                EVENT_HOLDER.innerHTML = ""
+
+                const WEB_HOLDER = document.getElementById('web-courses')
+                WEB_HOLDER.removeAttribute("hidden")
+                WEB_HOLDER.innerHTML = ""
+
+                colors = ["red", "green", "lightblue", "yellow", "orange", "mediumpurple", "chartreuse", "cyan", "coral", "darkred"].reverse()
+
+                SCHEDULE.forEach(course => {
+                    const color = colors.pop()
+                    if ("schedules" in course) {
+                        course['schedules'].forEach(timeslot => {
+                            if (timeslot.startDate == timeslot.endDate) {
+                                // nope, that's an exam
+                            } else if (timeslot.startTime != null && timeslot.endTime != null && timeslot.days != null) {
+                                for (const c of timeslot.days) {
+                                    const ST = new TimeWrapper(timeslot.startTime)
+                                    const ET = new TimeWrapper(timeslot.endTime)
+
+                                    const DAY_HEADER = document.getElementById(`day-${DAY_TO_NAME[c]}`)
+                                    const TIME_HEADER = document.getElementById(`time-${ST.getASPTimeBlock()}`)
+                                    const TIME_FOOTER = document.getElementById(`time-${ET.getASPTimeBlock()}`)
+
+                                    const START_PIXEL = TIME_HEADER.offsetTop + (TIME_HEADER.offsetHeight/30) * ST.getTimeIntoBlock()
+                                    const END_PIXEL = TIME_FOOTER.offsetTop + (TIME_FOOTER.offsetHeight/30) * ET.getTimeIntoBlock()
+
+                                    // create the tag
+                                    const EVENT = createCourseEvent(course, timeslot, color)
+                                    EVENT.style.width = `${DAY_HEADER.offsetWidth - 4}px`
+                                    EVENT.style.height = `${END_PIXEL-START_PIXEL}px`
+                                    EVENT.style.position = "absolute"
+                                    EVENT.style.top = `${START_PIXEL}px`
+                                    EVENT.style.left = `${DAY_HEADER.offsetLeft + 2}px`
+                                    EVENT.style.overflowY = "scroll"
+
+                                    EVENT.innerHTML += 
+                                    `Starts: ${ST.get12Time()}<br>
+                                    Ends: ${ET.get12Time()}<br>`
+
+                                    // add the tag to the schedule
+                                    EVENT_HOLDER.appendChild(EVENT)
+                                }
+                            } else if (timeslot.buildingCode == "WEB") {
+                                // it's an online async section
+                                WEB_COURSE = createCourseEvent(course, timeslot, color)
+                                WEB_COURSE.style.margin = "3px"
+                                WEB_COURSE.style.width = "22%"
+                                WEB_COURSE.style.display = "inline-block"
+                                WEB_HOLDER.appendChild(WEB_COURSE)
+                            }
+                        })
+                    }
+                })
+            }
+
+            function updateScheduleViewerIfRelevant() {
+                if (SCHEDULE_COURSES.length > 0) {
+                    updateScheduleViewer(document.getElementById('schedule-index-selector').value)
+                }
+            }
+            window.addEventListener('resize', updateScheduleViewerIfRelevant);
+            
+            function getTotalCreditHours(schedule) {
+                let total = 0
+                schedule.forEach(course => {
+                    total += course.creditHoursAvailable[0]
+                })
+                return total
+            }
+
+            // using the list of course schedules, fills out the selector for schedules
+            function initScheduleViewer() {
+                const SELECTOR = document.getElementById("schedule-index-selector")
+
+                SELECTOR.removeAttribute("hidden")
+                SELECTOR.innerHTML = ""
+
+                for (const i in SCHEDULE_COURSES) {
+                    const opt = document.createElement("option")
+                    opt.name = "schedule-index"
+                    opt.value = i
+                    opt.innerText = `Schedule ${parseInt(i)+1} (${getTotalCreditHours(SCHEDULE_COURSES[i])} CH)`
+                    SELECTOR.appendChild(opt)
+                }
+
+                updateScheduleViewer(0)
+            }
+
+            // pseudo const
+            let SCHEDULE_COURSES = []
+            // runs the scheduler with the provided ASP DATA, saves the resulting data, then runs the schedule viewer init
+            function runScheduler(ASP_INFO) {
+                const RUNNING_DISP = document.getElementById("scheduler-running")
+                RUNNING_DISP.removeAttribute("hidden")
+                runASPScheduler(ASP_INFO).then(schedules => {
+                    if (schedules == "ERROR") {
+                        // it's probably fine
+                    } else if (schedules.length == 0) {
+                        RUNNING_DISP.setAttribute("hidden", "hidden")
+                        window.alert("No schedule could be found")
+                    } else { 
+                        RUNNING_DISP.setAttribute("hidden", "hidden")
+                        console.log(schedules)
+                        SCHEDULE_COURSES = schedules
+                        initScheduleViewer()
+                    }
+                })
+            }
+
+            // parses the form data into a standardized format, then runs the scheduler
+            // basically quarantines HTML names and such to this function
+            // notably, credit hours are multiplied by 10 to allow for one decimal place of precision
+            function parseForm() {
+                const DATA = new FormData(document.getElementById("scheduler-options-form"))
+
+                const ASP_INFO = {}
+
+                // basic prereqs
+                ASP_INFO['termId'] = DATA.get("term")
+                ASP_INFO['maxSchedules'] = DATA.get("schedule-count")
+
+                // schedule pruning
+                ASP_INFO['hardMinHours'] = Math.floor(DATA.get("min-hours")*10)
+                ASP_INFO['hardMaxHours'] = Math.floor(DATA.get("max-hours")*10)
+                ASP_INFO['hardDayOff'] = DATA.get("day-off") == "on"
+
+                // courselist pruning
+                ASP_INFO['possibleCourses'] = makeArray(DATA.get("acceptable-courses"))
+                ASP_INFO['requiredCourses'] = makeArray(DATA.get("required-courses"))
+
+                ASP_INFO['avoidCourses'] = makeArray(DATA.get("restricted-courses"))
+                ASP_INFO['avoidSections'] = makeArray(DATA.get("restricted-crns"))
+                ASP_INFO['avoidInstructors'] = makeArray(DATA.get("restricted-instructors"))
+
+                ASP_INFO["campuses"] = DATA.getAll("campus-selection")
+                ASP_INFO['attributes'] = DATA.getAll("pa-selection")
+
+                ASP_INFO['allowWeb'] = DATA.get("allow-web-classes") == "on"
+
+                if (ASP_INFO.campuses.length == 0) {
+                    window.alert("Make sure to select a campus!")
+                    return
+                }
+
+                // schedule optimizing
+                ASP_INFO["wantInstructors"] = makeArray(DATA.get("desired-instructors"))
+                ASP_INFO['wantCourses'] = makeArray(DATA.get('preferred-courses'))
+                ASP_INFO["softMaxHours"] = Math.floor(DATA.get("preferred-max-hours")*10) 
+                ASP_INFO["softMinHours"] = Math.floor(DATA.get("preferred-min-hours")*10)
+                ASP_INFO["softStartTime"] = new TimeWrapper(DATA.get("preferred-start-time"))
+                ASP_INFO["softEndTime"] = new TimeWrapper(DATA.get("preferred-end-time"))
+
+                // optimization config
+                ASP_INFO["allowUnwantedInstructors"] = DATA.get("opt-restricted-instructor") == "on"
+
+                // > priorities
+                ASP_INFO["startTimePriority"] = parseInt(DATA.get("start-time-priority"))
+                ASP_INFO["endTimePriority"] = parseInt(DATA.get("end-time-priority"))
+                ASP_INFO["softMinHoursPriority"] = parseInt(DATA.get("credit-hour-min-priority"))
+                ASP_INFO["softMaxHoursPriority"] = parseInt(DATA.get("credit-hour-max-priority"))
+                ASP_INFO['wantCoursesPriority'] = parseInt(DATA.get("desired-course-priority"))
+                ASP_INFO['wantInstructorsPriority'] = parseInt(DATA.get("desired-instructor-priority"))
+                ASP_INFO["avoidInstructorsPriority"] = parseInt(DATA.get("restricted-instructor-priority"))
+
+                console.log(ASP_INFO)
+                runScheduler(ASP_INFO)
+            }
+        </script>
+        <style>
+            #calendar th, #calendar td {
+                border: 1px black solid;
+                border-collapse: collapse;
+            }
+        </style>
+    </head>
+    <body>
+        <div hidden id="calendar" style="width: 95%; height:65%; justify-self:center; border:black 1px solid; margin:5px; overflow-y:scroll; contain:content;">
+            <table style="width:100%; height:100%; border-collapse: collapse;">
+                <thead>
+                    <tr><th>Time</th><th id="day-sunday">Sunday</th><th id="day-monday">Monday</th><th id="day-tuesday">Tuesday</th><th id="day-wednesday">Wednesday</th><th id="day-thursday">Thursday</th><th id="day-friday">Friday</th><th id="day-saturday">Saturday</th></tr>
+                </thead>
+                <tbody>
+                    <tr><th id="time-0">12:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-30">12:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-60">1:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-90">1:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-120">2:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-150">2:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-180">3:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-210">3:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-240">4:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-270">4:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-300">5:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-330">5:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-360">6:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-390">6:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-420">7:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-450">7:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-480">8:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-510">8:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-540">9:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-570">9:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-600">10:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-630">10:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-660">11:00 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-690">11:30 AM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-720">12:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-750">12:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-780">1:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-810">1:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-840">2:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-870">2:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-900">3:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-930">3:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-960">4:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-990">4:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1020">5:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1050">5:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1080">6:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1110">6:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1140">7:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1170">7:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1200">8:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1230">8:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1260">9:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1290">9:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1320">10:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1350">10:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1380">11:00 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr><th id="time-1410">11:30 PM</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                </tbody>
+            </table>
+            <span id="calendar-events">
+                <p style="position: absolute; top:10%; left:439px; overflow: visible;">test</p>
+            </span>
+        </div>
+        <div id="web-courses" hidden></div>
+        <button onclick="parseForm()">Run scheduler!</button><span hidden id="scheduler-running">Scheduler is running...</span>
+        <select hidden id="schedule-index-selector" onchange="updateScheduleViewer(this.value)"></select>
+        <hr>
+        <form id="scheduler-options-form">
+            <b>General settings:</b>
+            <br>
+            <label for="term-selector">Select term:</label>
+            <select id="term-selector" name="term"></select>
+            <br>
+            <label for="schedule-count-slider">Max schedules to generate (0=unlimited):</label>
+            <input id="schedule-count-slider" name="schedule-count" type="range" value="25" min="0" max="100" step="1" onchange="document.getElementById('slider-value-display').innerText = this.value"> <span id="slider-value-display">25</span>
+            <br><hr>
+            <b>Schedule pruning:</b>
+            <p><i>These options will rule out schedules that don't meet the requirements.</i></p>
+            <label for="min-hours-box">Minimum credit hours:</label>
+            <input id="min-hours-box" name="min-hours" type="number" value="12" step="1" size="2" min="0" max="30">
+            <br>
+            <label for="max-hours-box">Maximum credit hours:</label>
+            <input id="max-hours-box" name="max-hours" type="number" value="18" step="1" size="2" min="0" max="30">
+            <br>
+            <label for="day-off-box">Require at least one weekday with no classes? (Often results in no schedules when combined with strict requirements)</label>
+            <input type="checkbox" id="day-off-box" name="day-off">
+            <br><hr>
+            <b>Course list pruning:</b>
+            <p><i>These options will modify what courses will be considered for your schedules.</i></p>
+            <label for="acceptable-course-box">Enter acceptable courses (what you MIGHT take this term) comma separated:</label>
+            <textarea id="acceptable-course-box" name="acceptable-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="required-course-box">Enter required courses (what you MUST take this term) comma separated:</label>
+            <textarea id="required-course-box" name="required-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="restricted-course-box">Enter courses you DON'T want to take (e.g. to filter out specific miami plan classes) comma separated:</label>
+            <textarea id="restricted-course-box" name="restricted-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="restricted-crn-box">Enter CRNs of specific course sections you DON'T want to take, comma separated:</label>
+            <textarea id="restricted-crn-box" name="restricted-crns" placeholder="Comma separated list of CRNs, e.g. '10001,13234,12423'"></textarea>
+            <br>
+            <label for="restricted-instructor-box">Enter uniqueids of instructors you DON'T want to have, comma separated:</label>
+            <textarea id="restricted-instructor-box" name="restricted-instructors" placeholder="Comma separated list of uniqueids, e.g. 'sobelae,borrorkn'"></textarea>
+            <br>
+            <label>Select desired campus(es) (exclude any class not at these):</label>
+            <div id="campus-selection"></div>
+            <br>
+            <label>Select desired perspective areas (include any class with one of these):</label>
+            <div id="pa-selection"></div>
+            <br>
+            <label for="allow-web-classes-box">Allow web-based classes?</label>
+            <input id="allow-web-classes-box" name="allow-web-classes" type="checkbox" checked>
+            <br><hr>
+            <b>Schedule optimizing:</b>
+            <p><i>These options won't add or remove potential courses, but they will impact which possible schedules are displayed.</i></p>
+            <label for="desired-instructors-box">Enter uniqueids of instructors you'd like to have, comma separated:</label>
+            <textarea id="desired-instructors-box" name="desired-instructors" placeholder="Comma separated list of uniqueids, e.g. 'beercp,borrorkn'"></textarea>
+            <br>
+            <label for="preferred-courses-box">Enter courses you'd prefer to take but don't have to take this term:</label>
+            <textarea id="preferred-courses-box" name="preferred-courses" placeholder="Comma separated courses, e.g. 'CSE201,MTH246,CEC111'"></textarea>
+            <br>
+            <label for="preferred-min-hours-box">Preferred minimum credit hours (greater or equal to required minimum):</label>
+            <input id="preferred-min-hours-box" name="preferred-min-hours" type="number" value="12" step="1" size="2" min="0" max="30">
+            <br>
+            <label for="preferred-max-hours-box">Preferred maximum credit hours (lower or equal to required maximum):</label>
+            <input id="preferred-max-hours-box" name="preferred-max-hours" type="number" value="18" step="1" size="2" min="0" max="30">
+            <br>
+            <label for="preferred-start-time-box">Preferred daily class start time (prefer schedules where as few days as possible start before this time):</label>
+            <input type="time" id="preferred-start-time-box" name="preferred-start-time" value="08:00">
+            <br>
+            <label for="preferred-end-time-box">Preferred daily class end time (prefer schedules where as few days as possible end after this time):</label>
+            <input type="time" id="preferred-end-time-box" name="preferred-end-time" value="18:00">
+            <br><hr>
+            <b>Optimization configuration:</b>
+            <p><i>
+                These options tune the way that optimizations are made to your schedule. 
+                For example, you can determine which optional criteria are most important to you.
+                You can also select whether certain criteria should be required or optional (e.g. having a specific perspective area).
+            </i></p>
+            <br>
+            <label for="opt-restricted-instructor-box">Are you willing to take a class with an instructor you want to avoid?</label>
+            <input type="checkbox" id="opt-restricted-instructor-box" name="opt-restricted-instructor" onchange="setInstructorPriorityVisibility(this.checked)">
+            <br>
+            <p>[UNIMPLEMENTED] Are there any perspective areas you MUST take this term?</p>
+            <div id="require-perspective"><!--TODO: generate this with a script --></div>
+            <br>
+            <p>
+                Select a priority level for each optimization preference.
+                9 is the highest priority, 1 is the lowest, and N/A means to ignore that attribute when optimizing.
+            </p>
+            <fieldset>
+                <legend>Priorities</legend>
+                <table id="priority-input-table">
+                    <thead><tr>
+                        <th></th><th>N/A</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                    </tr></thead>
+                    <tr>
+                        <th>Start time</th>
+                        <td><input type="radio" name="start-time-priority" value="0" checked></td>
+                        <td><input type="radio" name="start-time-priority" value="1"></td>
+                        <td><input type="radio" name="start-time-priority" value="2"></td>
+                        <td><input type="radio" name="start-time-priority" value="3"></td>
+                        <td><input type="radio" name="start-time-priority" value="4"></td>
+                        <td><input type="radio" name="start-time-priority" value="5"></td>
+                        <td><input type="radio" name="start-time-priority" value="6"></td>
+                        <td><input type="radio" name="start-time-priority" value="7"></td>
+                        <td><input type="radio" name="start-time-priority" value="8"></td>
+                        <td><input type="radio" name="start-time-priority" value="9"></td>
+                    </tr>
+                    <tr>
+                        <th>End time</th>
+                        <td><input type="radio" name="end-time-priority" value="0" checked></td>
+                        <td><input type="radio" name="end-time-priority" value="1"></td>
+                        <td><input type="radio" name="end-time-priority" value="2"></td>
+                        <td><input type="radio" name="end-time-priority" value="3"></td>
+                        <td><input type="radio" name="end-time-priority" value="4"></td>
+                        <td><input type="radio" name="end-time-priority" value="5"></td>
+                        <td><input type="radio" name="end-time-priority" value="6"></td>
+                        <td><input type="radio" name="end-time-priority" value="7"></td>
+                        <td><input type="radio" name="end-time-priority" value="8"></td>
+                        <td><input type="radio" name="end-time-priority" value="9"></td>
+                    </tr>
+                    <tr>
+                        <th>Preferred max credit hours</th>
+                        <td><input type="radio" name="credit-hour-max-priority" value="0" checked></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="1"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="2"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="3"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="4"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="5"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="6"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="7"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="8"></td>
+                        <td><input type="radio" name="credit-hour-max-priority" value="9"></td>
+                    </tr>
+                    <tr>
+                        <th>Preferred min credit hours</th>
+                        <td><input type="radio" name="credit-hour-min-priority" value="0" checked></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="1"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="2"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="3"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="4"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="5"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="6"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="7"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="8"></td>
+                        <td><input type="radio" name="credit-hour-min-priority" value="9"></td>
+                    </tr>
+                    <tr>
+                        <th>Have desired course</th>
+                        <td><input type="radio" name="desired-course-priority" value="0" checked></td>
+                        <td><input type="radio" name="desired-course-priority" value="1"></td>
+                        <td><input type="radio" name="desired-course-priority" value="2"></td>
+                        <td><input type="radio" name="desired-course-priority" value="3"></td>
+                        <td><input type="radio" name="desired-course-priority" value="4"></td>
+                        <td><input type="radio" name="desired-course-priority" value="5"></td>
+                        <td><input type="radio" name="desired-course-priority" value="6"></td>
+                        <td><input type="radio" name="desired-course-priority" value="7"></td>
+                        <td><input type="radio" name="desired-course-priority" value="8"></td>
+                        <td><input type="radio" name="desired-course-priority" value="9"></td>
+                    </tr>
+                    <tr>
+                        <th>Have desired instructor</th>
+                        <td><input type="radio" name="desired-instructor-priority" value="0" checked></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="1"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="2"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="3"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="4"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="5"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="6"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="7"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="8"></td>
+                        <td><input type="radio" name="desired-instructor-priority" value="9"></td>
+                    </tr>
+                    <tr id="dont-want-prof-priority-row" hidden>
+                        <th>Avoid unwanted instructor</th>
+                        <td><input type="radio" name="restricted-instructor-priority" value="0" checked></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="1"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="2"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="3"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="4"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="5"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="6"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="7"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="8"></td>
+                        <td><input type="radio" name="restricted-instructor-priority" value="9"></td>
+                    </tr>
+                </table>
+            </fieldset>
+        </form>
+        <script>document.getElementById("scheduler-options-form").addEventListener("submit", e => {e.preventDefault();});</script>
+    </body>
+</html>
